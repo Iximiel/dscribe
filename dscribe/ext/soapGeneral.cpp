@@ -1762,17 +1762,18 @@ void getC(double *C, double *rw2, double *gns, double *summed, double /*rCut*/,
   }
 }
 
-void accumC(double *Cs, const double *C, int lMax, int nMax, int typeI, int i,
-            int nCoeffs) {
+void accumC(double *Cs, const double *C, const int lMax, const int nMax,
+            const int typeI, const int i, const int nCoeffs) {
+  const int lMaxp1 = lMax + 1;
+  const int typeAddr = 2 * typeI * lMaxp1 * lMaxp1 * nMax;
   for (int n = 0; n < nMax; ++n) {
+    const int nAddr = 2 * lMaxp1 * lMaxp1 * n;
     for (int l = 0; l < lMax + 1; ++l) {
       for (int m = 0; m < l + 1; ++m) {
-        Cs[i * nCoeffs + 2 * typeI * (lMax + 1) * (lMax + 1) * nMax +
-           2 * (lMax + 1) * (lMax + 1) * n + l * 2 * (lMax + 1) + 2 * m] =
-            C[2 * (lMax + 1) * (lMax + 1) * n + l * 2 * (lMax + 1) + 2 * m];
-        Cs[i * nCoeffs + 2 * typeI * (lMax + 1) * (lMax + 1) * nMax +
-           2 * (lMax + 1) * (lMax + 1) * n + l * 2 * (lMax + 1) + 2 * m + 1] =
-            C[2 * (lMax + 1) * (lMax + 1) * n + l * 2 * (lMax + 1) + 2 * m + 1];
+        Cs[i * nCoeffs + typeAddr + nAddr + l * 2 * lMaxp1 + 2 * m] =
+            C[nAddr + l * 2 * lMaxp1 + 2 * m];
+        Cs[i * nCoeffs + typeAddr + nAddr + l * 2 * lMaxp1 + 2 * m + 1] =
+            C[nAddr + l * 2 * lMaxp1 + 2 * m + 1];
       }
     }
   }
