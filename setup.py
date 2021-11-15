@@ -12,8 +12,7 @@ from subprocess import getoutput
 
 
 def using_clang():
-    """Will we be using a clang compiler?
-    """
+    """Will we be using a clang compiler?"""
     compiler = new_compiler()
     customize_compiler(compiler)
     compiler_ver = getoutput("{0} -v".format(compiler.compiler[0]))
@@ -24,13 +23,14 @@ class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
     The purpose of this class is to postpone importing pybind11
     until it is actually installed, so that the ``get_include()``
-    method can be invoked. """
+    method can be invoked."""
 
     def __init__(self, user=False):
         self.user = user
 
     def __str__(self):
         import pybind11
+
         return pybind11.get_include(self.user)
 
 
@@ -48,13 +48,14 @@ if platform.system() == "Darwin" and using_clang():
 extensions = [
     # The SOAP, MBTR, ACSF and utils C++ extensions, wrapped with pybind11
     Extension(
-        'dscribe.ext',
+        "dscribe.ext",
         [
             "dscribe/ext/ext.cpp",
             "dscribe/ext/celllist.cpp",
             "dscribe/ext/descriptor.cpp",
             "dscribe/ext/soap.cpp",
             "dscribe/ext/soapGTO.cpp",
+            "dscribe/ext/soapGTO_getFactors.cpp",
             "dscribe/ext/soapGeneral.cpp",
             "dscribe/ext/acsf.cpp",
             "dscribe/ext/mbtr.cpp",
@@ -65,10 +66,11 @@ extensions = [
             # Path to pybind11 headers
             "dscribe/ext",
             get_pybind_include(),
-            get_pybind_include(user=True)
+            get_pybind_include(user=True),
         ],
-        language='c++',
-        extra_compile_args=cpp_extra_compile_args + ["-fvisibility=hidden"],  # the -fvisibility flag is needed by pybind11
+        language="c++",
+        extra_compile_args=cpp_extra_compile_args
+        + ["-fvisibility=hidden"],  # the -fvisibility flag is needed by pybind11
         extra_link_args=cpp_extra_link_args,
     )
 ]
@@ -81,8 +83,16 @@ if __name__ == "__main__":
         description="A Python package for creating feature transformations in applications of machine learning to materials science.",
         long_description="A Python package for creating feature transformations in applications of machine learning to materials science.",
         packages=find_packages(),
-        setup_requires=['pybind11>=2.4'],
-        install_requires=['pybind11>=2.4', "numpy", "scipy", "ase>=3.19.0", "scikit-learn", "joblib>=1.0.0", "sparse"],
+        setup_requires=["pybind11>=2.4"],
+        install_requires=[
+            "pybind11>=2.4",
+            "numpy",
+            "scipy",
+            "ase>=3.19.0",
+            "scikit-learn",
+            "joblib>=1.0.0",
+            "sparse",
+        ],
         include_package_data=True,  # This ensures that files defined in MANIFEST.in are included
         ext_modules=extensions,
         license="Apache License 2.0",
