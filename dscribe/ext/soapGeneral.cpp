@@ -1577,7 +1577,6 @@ pair<int, int> getDeltas(double *dx, double *dy, double *dz, double *ri,
   // delete[] oOr;
   expMs(minExp, eta, rw, ri, iNeighbour, rsize);
   expPs(pluExp, eta, rw, ri, iNeighbour, rsize);
-
   delete[] oO4ari;
   return make_pair(iNeighbour, iCenter);
 }
@@ -1634,22 +1633,23 @@ double legendre_poly(const int l, const int m, const double x) {
   if (m > 0) {
     double somx2 = sqrt((1.0 - x) * (1.0 + x));
 
-    double fact = -1.0;
+    // double fact = -1.0;
 
     for (int i = 0; i < m; ++i) {
-      pmm *= fact * somx2;
-      fact -= 2.0;
+      pmm *= -(1.0 + m * 2.0) * somx2;
+      // fact -= 2.0;
     }
   }
 
   if (l == m) {
     return pmm;
   }
-  if (l == (m + 1))
+  if (l == (m + 1)) {
     return x * (2 * m + 1) * pmm;
+  }
 
   double pmmp1 = x * (2 * m + 1) * pmm;
-  double pll;
+  double pll = pmmp1;
   for (int ll = m + 2; ll <= l; ++ll) {
     pll = (x * (2 * ll - 1) * pmmp1 - (ll + m - 1) * pmm) / double(ll - m);
     pmm = pmmp1;
@@ -1814,7 +1814,7 @@ void getP(py::detail::unchecked_mutable_reference<double, 2> &Ps,
             // the initialization of N2 is the only difference in the two cases
             // so if I use i can avoid a lot of code repetition,
             // for speed purpuses one can think to substitute "((Z1==Z2)? N1:0)"
-            // with the branchless version "((Z1==Z2)*N1:0)"
+            // with the branchless version "((Z1==Z2)*N1)"
             for (int N2 = ((Z1 == Z2) ? N1 : 0); N2 < nMax; N2++) {
               const int addrN2 = 2 * lMaxp1 * lMaxp1 * N2;
               double sum =
@@ -1909,13 +1909,13 @@ void getP(py::detail::unchecked_mutable_reference<double, 2> &Ps,
 void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
                  py::array_t<double> HposArr, py::array_t<int> atomicNumbersArr,
                  py::array_t<int> orderedSpeciesArr, const double rCut,
-                 const double cutoffPadding, const int nMax, const int lMax,
+                 const double /*cutoffPadding*/, const int nMax, const int lMax,
                  const double eta, py::dict weighting,
                  py::array_t<double> rwArr, py::array_t<double> gssArr,
                  const bool crossover, string average, CellList cellList) {
-  const int nAtoms = atomicNumbersArr.shape(0);
-  const int Nt = orderedSpeciesArr.shape(0);
-  const int Hs = HposArr.shape(0);
+  const int nAtoms = static_cast<const int>(atomicNumbersArr.shape(0));
+  const int Nt = static_cast<const int>(orderedSpeciesArr.shape(0));
+  const int Hs = static_cast<const int>(HposArr.shape(0));
   const int nFeatures = crossover
                             ? (Nt * nMax) * (Nt * nMax + 1) / 2 * (lMax + 1)
                             : Nt * (lMax + 1) * ((nMax + 1) * nMax) / 2;
@@ -1925,90 +1925,88 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
   double *Hpos = (double *)HposArr.request().ptr;
   double *rw = (double *)rwArr.request().ptr;
   double *gss = (double *)gssArr.request().ptr;
-  // const double *cf = factorListSet();
+
   constexpr int rsize = 100;
   const double rCut2 = rCut * rCut;
-
-  double *dx = new double[nAtoms];
-  double *dy = new double[nAtoms];
-  double *dz = new double[nAtoms];
-  double *ris = new double[nAtoms];
-  double *weights = new double[nAtoms];
-  double *oOri = new double[nAtoms];
-  //#define totrs (double *)malloc(sizeof(double) * nAtoms * rsize);
-  double *oO4arri = new double[nAtoms * rsize];
-  double *minExp = new double[nAtoms * rsize];
-  double *pluExp = new double[nAtoms * rsize];
-
-  double *C = new double[2 * (lMax + 1) * (lMax + 1) * nMax];
-
   // Initialize arrays for storing the C coefficients.
   const int nCoeffs = 2 * (lMax + 1) * (lMax + 1) * nMax * Nt;
   const int nCoeffsAll = nCoeffs * Hs;
-  double *Cs = new double[nCoeffsAll];
-  memset(Cs, 0.0, nCoeffsAll * sizeof(double));
-  /*
-  double *CsAve;
-  if (average == "inner") {
-    CsAve = (double *)malloc(nCoeffs * sizeof(double));
-    memset(CsAve, 0.0, nCoeffs * sizeof(double));
-  }
-*/
   // Create a mapping between an atomic index and its internal index in the
   // output. The list of species is already ordered.
   map<int, int> ZIndexMap;
   for (int i = 0; i < species.size(); ++i) {
     ZIndexMap[species(i)] = i;
   }
+  double *Cs = new double[nCoeffsAll];
+  memset(Cs, 0.0, nCoeffsAll * sizeof(double));
+  {
+    double *dx = new double[nAtoms];
+    double *dy = new double[nAtoms];
+    double *dz = new double[nAtoms];
+    double *minExp = new double[nAtoms * rsize];
+    double *pluExp = new double[nAtoms * rsize];
+    double *ris = new double[nAtoms];
+    double *weights = new double[nAtoms];
+    double *oOri = new double[nAtoms];
+    double *oO4arri = new double[nAtoms * rsize];
+    double *C = new double[2 * (lMax + 1) * (lMax + 1) * nMax];
+    // Loop through central points
+    for (int i = 0; i < Hs; ++i) {
+      auto ix = Hpos[3 * i];
+      auto iy = Hpos[3 * i + 1];
+      auto iz = Hpos[3 * i + 2];
+      // Get all neighbours for the central atom i
+      CellListResult result = cellList.getNeighboursForPosition(
+          ix /*Hpos[3 * i]*/, iy /*Hpos[3 * i + 1]*/, iz /*Hpos[3 * i + 2]*/);
+      // Sort the neighbours by type
+      map<int, vector<int>> atomicTypeMap;
+      for (const int &idx : result.indices) {
+        int Z = atomicNumbers(idx);
+        atomicTypeMap[Z].push_back(idx);
+      };
+      // Loop through neighbours sorted by type
+      for (const auto &ZIndexPair : atomicTypeMap) {
 
-  // Loop through central points
-  for (int i = 0; i < Hs; ++i) {
-    auto ix = Hpos[3 * i];
-    auto iy = Hpos[3 * i + 1];
-    auto iz = Hpos[3 * i + 2];
-    // Get all neighbours for the central atom i
-    CellListResult result = cellList.getNeighboursForPosition(
-        ix /*Hpos[3 * i]*/, iy /*Hpos[3 * i + 1]*/, iz /*Hpos[3 * i + 2]*/);
-    // Sort the neighbours by type
-    map<int, vector<int>> atomicTypeMap;
-    for (const int &idx : result.indices) {
-      int Z = atomicNumbers(idx);
-      atomicTypeMap[Z].push_back(idx);
-    };
+        // j is the internal index for this atomic number
+        int j = ZIndexMap[ZIndexPair.first];
 
-    // Loop through neighbours sorted by type
-    for (const auto &ZIndexPair : atomicTypeMap) {
+        // Notice that due to the numerical integration the getDeltas
+        // function here has special functionality for positions that are
+        // centered on an atom.
+        pair<int, int> neighbours = getDeltas(
+            dx, dy, dz, ris, rw, rCut, oOri, oO4arri, minExp, pluExp, eta,
+            positions, ix, iy, iz, ZIndexPair.second, rsize, i, j);
+        const int nNeighbours = neighbours.first;
+        const int nCenters = neighbours.second;
 
-      // j is the internal index for this atomic number
-      int j = ZIndexMap[ZIndexPair.first];
-
-      // Notice that due to the numerical integration the getDeltas
-      // function here has special functionality for positions that are
-      // centered on an atom.
-      pair<int, int> neighbours =
-          getDeltas(dx, dy, dz, ris, rw, rCut, oOri, oO4arri, minExp, pluExp,
-                    eta, positions, ix, iy, iz, ZIndexPair.second, rsize, i, j);
-      const int nNeighbours = neighbours.first;
-      const int nCenters = neighbours.second;
-
-      getWeights(nNeighbours + min(nCenters, 1), ris, NULL, false, weighting,
-                 weights);
-      double *Flir =
-          getFlir(oO4arri, ris, minExp, pluExp, nNeighbours, rsize, lMax);
-      double *Ylmi = getYlmi(dx, dy, dz, oOri, nNeighbours, lMax);
-      double *summed =
-          getIntegrand(Flir, Ylmi, rsize, nNeighbours, lMax, weights);
-      delete[] Ylmi;
-      delete[] Flir;
-      double *rw2 = getrw2(rw, rsize);
-      getC(C, rw2, gss, summed, rCut, lMax, rsize, nMax, nCenters, nNeighbours,
-           eta, weights);
-      delete[] summed;
-      delete[] rw2;
-      accumC(Cs, C, lMax, nMax, j, i, nCoeffs);
+        getWeights(nNeighbours + min(nCenters, 1), ris, NULL, false, weighting,
+                   weights);
+        double *Flir =
+            getFlir(oO4arri, ris, minExp, pluExp, nNeighbours, rsize, lMax);
+        double *Ylmi = getYlmi(dx, dy, dz, oOri, nNeighbours, lMax);
+        double *summed =
+            getIntegrand(Flir, Ylmi, rsize, nNeighbours, lMax, weights);
+        delete[] Ylmi;
+        delete[] Flir;
+        double *rw2 = getrw2(rw, rsize);
+        getC(C, rw2, gss, summed, rCut, lMax, rsize, nMax, nCenters,
+             nNeighbours, eta, weights);
+        delete[] summed;
+        delete[] rw2;
+        accumC(Cs, C, lMax, nMax, j, i, nCoeffs);
+      }
     }
+    delete[] dx;
+    delete[] dy;
+    delete[] dz;
+    delete[] minExp;
+    delete[] pluExp;
+    delete[] C;
+    delete[] ris;
+    delete[] weights;
+    delete[] oOri;
+    delete[] oO4arri;
   }
-
   // If inner averaging is requested, average the coefficients over the
   // positions (axis 0 in cnnd matrix) before calculating the power spectrum.
   if (average == "inner") {
@@ -2022,7 +2020,7 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
       }
     }
     for (int j = 0; j < nCoeffs; ++j) {
-      CsAve[j] = CsAve[j] / (double)Hs;
+      CsAve[j] = CsAve[j] / static_cast<double>(Hs);
     }
     getP(Ps, CsAve, Nt, lMax, nMax, 1, rCut2, nFeatures, crossover, nCoeffs);
     delete[] CsAve;
@@ -2050,14 +2048,4 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
   }
 
   delete[] Cs;
-  delete[] dx;
-  delete[] dy;
-  delete[] dz;
-  delete[] ris;
-  delete[] weights;
-  delete[] oOri;
-  delete[] oO4arri;
-  delete[] minExp;
-  delete[] pluExp;
-  delete[] C;
 }
