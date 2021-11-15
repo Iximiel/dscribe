@@ -1794,101 +1794,117 @@ void getP(py::detail::unchecked_mutable_reference<double, 2> &Ps,
           const bool crossover, const int nCoeffs) {
   // The current index in the final power spectrum array.
   int pIdx = 0;
-
+  const int lMaxp1 = lMax + 1;
   for (int i = 0; i < Hs; ++i) {
     pIdx = 0;
     for (int Z1 = 0; Z1 < Nt; Z1++) {
       int Z2Limit = crossover ? Nt : Z1 + 1;
+      int addrZ1 = 2 * Z1 * lMaxp1 * lMaxp1 * nMax;
       for (int Z2 = Z1; Z2 < Z2Limit; Z2++) {
         // If the species are identical, then there is symmetry in the
         // radial basis and we only loop N2 from N1 to nMax
-        if (Z1 == Z2) {
-          for (int l = 0; l < lMax + 1; ++l) {
-            for (int N1 = 0; N1 < nMax; N1++) {
-              for (int N2 = N1; N2 < nMax; N2++) {
-                double sum = 0;
-                for (int m = 0; m < l + 1; ++m) {
-                  if (m == 0) {
-                    sum += Cs[i * nCoeffs +
-                              2 * Z1 * (lMax + 1) * (lMax + 1) * nMax +
-                              2 * (lMax + 1) * (lMax + 1) * N1 +
-                              l * 2 * (lMax + 1)] // m=0
-                           * Cs[i * nCoeffs +
-                                2 * Z2 * (lMax + 1) * (lMax + 1) * nMax +
-                                2 * (lMax + 1) * (lMax + 1) * N2 +
-                                l * 2 * (lMax + 1)]; // m=0
-                  } else {
-                    sum += 2 * (Cs[i * nCoeffs +
-                                   2 * Z1 * (lMax + 1) * (lMax + 1) * nMax +
-                                   2 * (lMax + 1) * (lMax + 1) * N1 +
-                                   l * 2 * (lMax + 1) + 2 * m] *
-                                    Cs[i * nCoeffs +
-                                       2 * Z2 * (lMax + 1) * (lMax + 1) * nMax +
-                                       2 * (lMax + 1) * (lMax + 1) * N2 +
-                                       l * 2 * (lMax + 1) + 2 * m] +
-                                Cs[i * nCoeffs +
-                                   2 * Z1 * (lMax + 1) * (lMax + 1) * nMax +
-                                   2 * (lMax + 1) * (lMax + 1) * N1 +
-                                   l * 2 * (lMax + 1) + 2 * m + 1] *
-                                    Cs[i * nCoeffs +
-                                       2 * Z2 * (lMax + 1) * (lMax + 1) * nMax +
-                                       2 * (lMax + 1) * (lMax + 1) * N2 +
-                                       l * 2 * (lMax + 1) + 2 * m + 1]);
-                  }
-                }
-                Ps(i, pIdx) = PI * sqrt(8.0 / (2.0 * l + 1.0)) * 39.478417604 *
-                              rCut2 * sum; // Normalization and other constants
-                ++pIdx;
+        int addrZ2 = 2 * Z2 * lMaxp1 * lMaxp1 * nMax;
+        for (int l = 0; l < lMax + 1; ++l) {
+          const double normalizationConst =
+              PI * sqrt(8.0 / (2.0 * l + 1.0)) * 39.478417604 * rCut2;
+          const int twoLlMaxp1 = l * 2 * lMaxp1;
+          for (int N1 = 0; N1 < nMax; N1++) {
+            const int addrN1 = 2 * lMaxp1 * lMaxp1 * N1;
+            // the initialization of N2 is the only difference in the two cases
+            // so if I use i can avoid a lot of code repetition,
+            // for speed purpuses one can think to substitute "((Z1==Z2)? N1:0)"
+            // with the branchless version "((Z1==Z2)*N1:0)"
+            for (int N2 = ((Z1 == Z2) ? N1 : 0); N2 < nMax; N2++) {
+              const int addrN2 = 2 * lMaxp1 * lMaxp1 * N2;
+              double sum =
+                  Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1]    // m=0
+                  * Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1]; // m=0
+              for (int m = 1; m < l + 1; ++m) {
+                sum += 2 *
+                       (Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m] *
+                            Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
+                               2 * m] +
+                        Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m +
+                           1] *
+                            Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
+                               2 * m + 1]);
               }
-            }
-          }
-          // If the species are different, then there is no symmetry in the
-          // radial basis and we have to loop over all pairwise combinations.
-        } else {
-          for (int l = 0; l < lMax + 1; ++l) {
-            for (int N1 = 0; N1 < nMax; N1++) {
-              for (int N2 = 0; N2 < nMax; N2++) {
-                double sum = 0;
-                for (int m = 0; m < l + 1; ++m) {
-                  if (m == 0) {
-                    sum += Cs[i * nCoeffs +
-                              2 * Z1 * (lMax + 1) * (lMax + 1) * nMax +
-                              2 * (lMax + 1) * (lMax + 1) * N1 +
-                              l * 2 * (lMax + 1)] // m=0
-                           * Cs[i * nCoeffs +
-                                2 * Z2 * (lMax + 1) * (lMax + 1) * nMax +
-                                2 * (lMax + 1) * (lMax + 1) * N2 +
-                                l * 2 * (lMax + 1)]; // m=0
-                  } else {
-                    sum += 2 * (Cs[i * nCoeffs +
-                                   2 * Z1 * (lMax + 1) * (lMax + 1) * nMax +
-                                   2 * (lMax + 1) * (lMax + 1) * N1 +
-                                   l * 2 * (lMax + 1) + 2 * m] *
-                                    Cs[i * nCoeffs +
-                                       2 * Z2 * (lMax + 1) * (lMax + 1) * nMax +
-                                       2 * (lMax + 1) * (lMax + 1) * N2 +
-                                       l * 2 * (lMax + 1) + 2 * m] +
-                                Cs[i * nCoeffs +
-                                   2 * Z1 * (lMax + 1) * (lMax + 1) * nMax +
-                                   2 * (lMax + 1) * (lMax + 1) * N1 +
-                                   l * 2 * (lMax + 1) + 2 * m + 1] *
-                                    Cs[i * nCoeffs +
-                                       2 * Z2 * (lMax + 1) * (lMax + 1) * nMax +
-                                       2 * (lMax + 1) * (lMax + 1) * N2 +
-                                       l * 2 * (lMax + 1) + 2 * m + 1]);
-                  }
-                }
-                Ps(i, pIdx) = PI * sqrt(8.0 / (2.0 * l + 1.0)) * 39.478417604 *
-                              rCut2 * sum; // Normalization and other constants
-                ++pIdx;
-              }
+              // Applying normalization and other constants
+              Ps(i, pIdx) = normalizationConst * sum;
+              ++pIdx;
             }
           }
         }
       }
+
+      /*
+      //this is the original version
+      if (Z1 == Z2) {
+        for (int l = 0; l < lMaxp1; ++l) {
+          const double normalizationConst =
+              PI * sqrt(8.0 / (2.0 * l + 1.0)) * 39.478417604 * rCut2;
+          const int twoLlMaxp1 = l * 2 * lMaxp1;
+          for (int N1 = 0; N1 < nMax; N1++) {
+            const int addrN1 = 2 * lMaxp1 * lMaxp1 * N1;
+            for (int N2 = N1; N2 < nMax; N2++) {
+              const int addrN2 = 2 * lMaxp1 * lMaxp1 * N2;
+              double sum =
+                  Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1]    // m=0
+                  * Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1]; // m=0
+              for (int m = 1; m < l + 1; ++m) {
+                sum +=
+                    2 *
+                    (Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m] *
+                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
+                            2 * m] +
+                     Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m +
+                        1] *
+                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
+                            2 * m + 1]);
+              }
+              // Applying normalization and other constants
+              Ps(i, pIdx) = normalizationConst * sum;
+              ++pIdx;
+            }
+          }
+        }
+        // If the species are different, then there is no symmetry in the
+        // radial basis and we have to loop over all pairwise combinations.
+      } else {
+        for (int l = 0; l < lMax + 1; ++l) {
+          const double normalizationConst =
+              PI * sqrt(8.0 / (2.0 * l + 1.0)) * 39.478417604 * rCut2;
+          const int twoLlMaxp1 = l * 2 * lMaxp1;
+          for (int N1 = 0; N1 < nMax; N1++) {
+            const int addrN1 = 2 * lMaxp1 * lMaxp1 * N1;
+            for (int N2 = 0; N2 < nMax; N2++) {
+              const int addrN2 = 2 * lMaxp1 * lMaxp1 * N2;
+              double sum =
+                  Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1]    // m=0
+                  * Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1]; // m=0
+              for (int m = 1; m < l + 1; ++m) {
+                sum +=
+                    2 *
+                    (Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m] *
+                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
+                            2 * m] +
+                     Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m +
+                        1] *
+                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
+                            2 * m + 1]);
+              }
+              // Applying normalization and other constants
+              Ps(i, pIdx) = normalizationConst * sum;
+              ++pIdx;
+            }
+          }
+        }
+      }
+    }*/
     }
   }
 }
+
 void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
                  py::array_t<double> HposArr, py::array_t<int> atomicNumbersArr,
                  py::array_t<int> orderedSpeciesArr, const double rCut,
