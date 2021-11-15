@@ -570,13 +570,18 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   double *betas = (double *)betasArr.request().ptr;
   double oOeta = 1.0 / eta;
   double oOeta3O2 = sqrt(oOeta * oOeta * oOeta);
-  double nMax2 = nMax * nMax;
+  const int nMax2 = nMax * nMax;
   auto centers_u = centers.unchecked<2>();
   auto positions_u = positions.unchecked<2>();
   const int nFeatures =
       crossover ? (nSpecies * nMax) * (nSpecies * nMax + 1) / 2 * (lMax + 1)
                 : nSpecies * (lMax + 1) * ((nMax + 1) * nMax) / 2;
-  double *weights = (double *)malloc(sizeof(double) * totalAN);
+  const int n_coeffs = nSpecies * nMax * (lMax + 1) * (lMax + 1);
+
+  double *weights = new double[totalAN];
+  double *dx = new double[totalAN];
+  double *dy = new double[totalAN];
+  double *dz = new double[totalAN];
   constexpr int to2 = 0;
   constexpr int to4 = 1;
   constexpr int to6 = 2;
@@ -588,10 +593,6 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   constexpr int to18 = 8;
   constexpr int to20 = 9;
   constexpr int to1 = 10;
-  double *dx = (double *)malloc(sizeof(double) * totalAN);
-  double *dy = (double *)malloc(sizeof(double) * totalAN);
-  double *dz = (double *)malloc(sizeof(double) * totalAN);
-
   // vectors should help with the memory leaks
   std::array<std::vector<double>, 10> Xpow = {
       std::vector<double>(totalAN),                    // x2
@@ -640,28 +641,24 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
       std::vector<double>((lMax > 19) ? totalAN : 0), // r20
       std::vector<double>(totalAN)};                  // r1
 
-  double *exes = (double *)malloc(sizeof(double) * totalAN);
+  double *exes = new double[totalAN];
   // -4 -> no need for l=0, l=1.
-  double *preCoef = (double *)malloc(((lMax + 1) * (lMax + 1) - 4) *
-                                     sizeof(double) * totalAN);
-  double *prCofDX;
-  double *prCofDY;
-  double *prCofDZ;
-  if (return_derivatives) {
-    prCofDX = (double *)malloc(((lMax + 1) * (lMax + 1) - 4) * sizeof(double) *
-                               totalAN);
-    prCofDY = (double *)malloc(((lMax + 1) * (lMax + 1) - 4) * sizeof(double) *
-                               totalAN);
-    prCofDZ = (double *)malloc(((lMax + 1) * (lMax + 1) - 4) * sizeof(double) *
-                               totalAN);
-  }
+  double *preCoef = new double[((lMax + 1) * (lMax + 1) - 4) * totalAN];
+  double *prCofDX = (return_derivatives)
+                        ? new double[((lMax + 1) * (lMax + 1) - 4) * totalAN]
+                        : nullptr;
+  double *prCofDY = (return_derivatives)
+                        ? new double[((lMax + 1) * (lMax + 1) - 4) * totalAN]
+                        : nullptr;
+  double *prCofDZ = (return_derivatives)
+                        ? new double[((lMax + 1) * (lMax + 1) - 4) * totalAN]
+                        : nullptr;
 
-  double *bOa = (double *)malloc((lMax + 1) * nMax2 * sizeof(double));
-  double *aOa = (double *)malloc((lMax + 1) * nMax * sizeof(double));
+  double *bOa = new double[(lMax + 1) * nMax2];
+  double *aOa = new double[(lMax + 1) * nMax];
 
   // Initialize temporary numpy array for storing the coefficients and the
   // averaged coefficients if inner averaging was requested.
-  const int n_coeffs = nSpecies * nMax * (lMax + 1) * (lMax + 1);
   double *cnnd_raw = new double[nCenters * n_coeffs]();
   py::array_t<double> cnnd({nCenters, nSpecies, nMax, (lMax + 1) * (lMax + 1)},
                            cnnd_raw);
@@ -751,57 +748,16 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
             ZIndexPair.second, return_derivatives);
     }
   }
-  free(dx);
-  /*free(x2);
-  free(x4);
-  free(x6);
-  free(x8);
-  free(x10);
-  free(x12);
-  free(x14);
-  free(x16);
-  free(x18);*/
-  free(dy);
-  /*
-  free(y2);
-  free(y4);
-  free(y6);
-  free(y8);
-  free(y10);
-  free(y12);
-  free(y14);
-  free(y16);
-  free(y18);
-  */
-  free(dz);
-  /*
-  free(z2);
-  free(z4);
-  free(z6);
-  free(z8);
-  free(z10);
-  free(z12);
-  free(z14);
-  free(z16);
-  free(z18);
-  free(r2);
-  free(r4);
-  free(r6);
-  free(r8);
-  free(r10);
-  free(r12);
-  free(r14);
-  free(r16);
-  free(r18);
-  free(r20);
-  free(x20);
-  free(y20);
-  free(z20);*/
-  free(exes);
-  free(preCoef);
-  free(bOa);
-  free(aOa);
-  free(cnnd_raw);
+  delete[] dx;
+  delete[] dy;
+  delete[] dz;
+
+  delete[] exes;
+  delete[] preCoef;
+  delete[] bOa;
+  delete[] aOa;
+  delete[] cnnd_raw;
+  delete[] weights;
 
   // Calculate the descriptor value if requested
   if (return_descriptor) {
@@ -866,5 +822,5 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
             crossover);
   }
 
-  return;
+  // return;
 }
