@@ -1637,6 +1637,7 @@ double legendre_poly(const int l, const int m, const double x) {
 
     for (int i = 0; i < m; ++i) {
       pmm *= -(1.0 + m * 2.0) * somx2;
+      // pmm *= fact * somx2;
       // fact -= 2.0;
     }
   }
