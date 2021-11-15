@@ -16,14 +16,14 @@ limitations under the License.
 #include "weighting.h"
 #include <algorithm>
 #include <array>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <map>
-#include <math.h>
 #include <set>
-#include <stdio.h>
-#include <stdlib.h>
 
-#define sd sizeof(double)
+//#define sd sizeof(double)
 #define PI 3.14159265359
 
 namespace SOAPconstants {
@@ -1461,23 +1461,23 @@ constexpr std::array<double, rsize> ws = {
 
 } // namespace SOAPconstants
 
-const double *factorListSet() { return SOAPconstants::factorList.data(); }
+// const double *factorListSet() { return SOAPconstants::factorList.data(); }
 
-const double *getws() { return SOAPconstants::ws.data(); }
+// const double *getws() { return SOAPconstants::ws.data(); }
 
 inline double factorY(int l, int m) {
   return SOAPconstants::factorList[(l * (l + 1)) / 2 + m]; // l+1
 }
-
-inline double *getoOr(double *r, const int rsize) {
+/*
+inline double *getoOr(const double *r, const int rsize) {
   double *oOr = new double[rsize];
   for (int w = 0; w < rsize; ++w) {
     oOr[w] = 1.0 / r[w];
   }
   return oOr;
 }
-
-inline double *getrw2(double *r, const int rsize) {
+*/
+inline double *getrw2(const double *r, const int rsize) {
   double *rw2 = new double[rsize];
   for (int w = 0; w < rsize; ++w) {
     rw2[w] = r[w] * r[w];
@@ -1485,8 +1485,8 @@ inline double *getrw2(double *r, const int rsize) {
   return rw2;
 }
 
-inline void expMs(double *rExpDiff, double eta, double *r, double *ri,
-                  int isize, int rsize) {
+inline void expMs(double *rExpDiff, const double eta, const double *r,
+                  const double *ri, const int isize, const int rsize) {
   double rDiff;
   for (int i = 0; i < isize; ++i) {
     for (int w = 0; w < rsize; ++w) {
@@ -1500,9 +1500,9 @@ inline void expMs(double *rExpDiff, double eta, double *r, double *ri,
   }
 }
 
-inline void expPs(double *rExpSum, double eta, double *r, double *ri, int isize,
-                  int rsize) {
-  double rSum;
+inline void expPs(double *rExpSum, const double eta, const double *r,
+                  const double *ri, const int isize, const int rsize) {
+  double rSum = 0.0;
   for (int i = 0; i < isize; ++i) {
     for (int w = 0; w < rsize; ++w) {
       rSum = r[w] + ri[i];
@@ -1514,65 +1514,67 @@ inline void expPs(double *rExpSum, double eta, double *r, double *ri, int isize,
     }
   }
 }
-
-struct {};
-
+/*
+struct NeighboursAndCenters {
+  int iNeighbour{0};
+  int iCenter{0};
+};
+*/
 pair<int, int> getDeltas(double *dx, double *dy, double *dz, double *ri,
-                         double *rw, double rCut, double *oOri, double *oO4arri,
-                         double *minExp, double *pluExp, double eta,
-                         const py::array_t<double> &positions, const double ix,
-                         const double iy, const double iz,
-                         const vector<int> &indices, int rsize, int Ihpos,
-                         int Itype) {
+                         const double *rw, double /*rCut*/, double *oOri,
+                         double *oO4arri, double *minExp, double *pluExp,
+                         double eta, const py::array_t<double> &positions,
+                         const double ix, const double iy, const double iz,
+                         const vector<int> &indices, const int rsize,
+                         const int Ihpos, const int Itype) {
   int iNeighbour = 0;
   int iCenter = 0;
-  double ri2;
-  const double oneOnEta = 1 / eta;
-  double Xi;
-  double Yi;
-  double Zi;
   const int nNeighbours = indices.size();
   double *oO4ari = new double[nNeighbours];
-  // double *oO4ari = (double *)malloc(sd * nNeighbours);
+  {
+    double Xi;
+    double Yi;
+    double Zi;
+    double ri2;
+    const double oneOnEta = 1.0 / eta;
+    auto pos = positions.unchecked<2>();
+    for (const int &i : indices) {
+      Xi = pos(i, 0) - ix;
+      Yi = pos(i, 1) - iy;
+      Zi = pos(i, 2) - iz;
+      ri2 = Xi * Xi + Yi * Yi + Zi * Zi;
 
-  auto pos = positions.unchecked<2>();
-  for (const int &i : indices) {
-    Xi = pos(i, 0) - ix;
-    Yi = pos(i, 1) - iy;
-    Zi = pos(i, 2) - iz;
-    ri2 = Xi * Xi + Yi * Yi + Zi * Zi;
-
-    // When an atom is very close to the center (=approximately on top of
-    // it), we do not add it to the calculations, as the numerical
-    // integration cannot handle these cases. Instead, we gather the number
-    // of such centered atoms and report them back for later correction.
-    if (ri2 <= 1e-12) {
-      iCenter++;
-    } else {
-      ri[iNeighbour] = sqrt(ri2);
-      dx[iNeighbour] = Xi;
-      dy[iNeighbour] = Yi;
-      dz[iNeighbour] = Zi;
-      oOri[iNeighbour] = 1.0 / ri[iNeighbour];
-      oO4ari[iNeighbour] = 0.25 * oneOnEta * oOri[iNeighbour];
-      iNeighbour++;
+      // When an atom is very close to the center (=approximately on top of
+      // it), we do not add it to the calculations, as the numerical
+      // integration cannot handle these cases. Instead, we gather the number
+      // of such centered atoms and report them back for later correction.
+      if (ri2 <= 1e-12) {
+        iCenter++;
+      } else {
+        ri[iNeighbour] = sqrt(ri2);
+        dx[iNeighbour] = Xi;
+        dy[iNeighbour] = Yi;
+        dz[iNeighbour] = Zi;
+        oOri[iNeighbour] = 1.0 / ri[iNeighbour];
+        oO4ari[iNeighbour] = 0.25 * oneOnEta * oOri[iNeighbour];
+        iNeighbour++;
+      }
     }
   }
-
   // If there is at least one atom at the center, we add a zero element to
   // the end of ris so that the weights can be calculated. This way they do
   // not interfere with the calculations for non-centered atoms.
   if (iCenter > 0) {
-    ri[iNeighbour] = 0;
+    ri[iNeighbour] = 0.0;
   }
 
-  double *oOr = getoOr(rw, rsize);
+  // double *oOr = getoOr(rw, rsize);
   for (int i = 0; i < iNeighbour; ++i) {
     for (int w = 0; w < rsize; ++w) {
-      oO4arri[rsize * i + w] = oO4ari[i] * oOr[w];
+      oO4arri[rsize * i + w] = oO4ari[i] / rw[w];
     }
   }
-  delete[] oOr;
+  // delete[] oOr;
   expMs(minExp, eta, rw, ri, iNeighbour, rsize);
   expPs(pluExp, eta, rw, ri, iNeighbour, rsize);
 
@@ -1580,8 +1582,9 @@ pair<int, int> getDeltas(double *dx, double *dy, double *dz, double *ri,
   return make_pair(iNeighbour, iCenter);
 }
 
-double *getFlir(double *oO4arri, double *ri, double *minExp, double *pluExp,
-                int icount, int rsize, int lMax) {
+double *getFlir(const double *oO4arri, const double * /*ri*/,
+                const double *minExp, const double *pluExp, const int icount,
+                const int rsize, const int lMax) {
   double *Flir = new double[(lMax + 1) * icount * rsize];
   // l=0
   for (int i = 0; i < icount; ++i) {
@@ -1622,8 +1625,8 @@ double *getFlir(double *oO4arri, double *ri, double *minExp, double *pluExp,
   return Flir;
 }
 
-double legendre_poly(int l, int m, double x) {
-  double pll, pmm = 1.0;
+double legendre_poly(const int l, const int m, const double x) {
+  double pmm = 1.0;
   if (m < 0 || m > l || fabs(x) > 1.0) {
     printf("ERROR: Bad arguments in routine legendre_poly");
     exit(1);
@@ -1641,23 +1644,22 @@ double legendre_poly(int l, int m, double x) {
 
   if (l == m) {
     return pmm;
-  } else {
-    if (l == (m + 1)) {
-      return x * (2 * m + 1) * pmm;
-    } else {
-      double pmmp1 = x * (2 * m + 1) * pmm;
-      for (int ll = m + 2; ll <= l; ++ll) {
-        pll = (x * (2 * ll - 1) * pmmp1 - (ll + m - 1) * pmm) / double(ll - m);
-        pmm = pmmp1;
-        pmmp1 = pll;
-      }
-      return pll;
-    }
   }
+  if (l == (m + 1))
+    return x * (2 * m + 1) * pmm;
+
+  double pmmp1 = x * (2 * m + 1) * pmm;
+  double pll;
+  for (int ll = m + 2; ll <= l; ++ll) {
+    pll = (x * (2 * ll - 1) * pmmp1 - (ll + m - 1) * pmm) / double(ll - m);
+    pmm = pmmp1;
+    pmmp1 = pll;
+  }
+  return pll;
 }
 
-double *getYlmi(double *x, double *y, double *z, double *oOri, int icount,
-                int lMax) {
+double *getYlmi(const double *x, const double *y, const double *z,
+                const double *oOri, const int icount, const int lMax) {
   double *Ylmi = new double[2 * (lMax + 1) * (lMax + 1) * icount];
 
   double *legPol = new double[(lMax + 1) * (lMax + 1) * icount];
@@ -1697,9 +1699,11 @@ double *getYlmi(double *x, double *y, double *z, double *oOri, int icount,
 
   return Ylmi;
 }
-double *getIntegrand(double *Flir, double *Ylmi, int rsize, int icount,
-                     int lMax, double *weights) {
-  double *summed = (double *)malloc(2 * sd * (lMax + 1) * rsize * (lMax + 1));
+
+double *getIntegrand(const double *Flir, const double *Ylmi, int rsize,
+                     int icount, int lMax, const double *weights) {
+  // double *summed = (double *)malloc(2 * sd * (lMax + 1) * rsize *(lMax+1));
+  double *summed = new double[2 * (lMax + 1) * rsize * (lMax + 1)];
   double realY;
   double imagY;
 
@@ -1722,9 +1726,10 @@ double *getIntegrand(double *Flir, double *Ylmi, int rsize, int icount,
   }
   return summed;
 }
-void getC(double *C, double *rw2, double *gns, double *summed, double rCut,
+
+void getC(double *C, double *rw2, double *gns, double *summed, double /*rCut*/,
           int lMax, int rsize, int gnsize, int nCenters, int nNeighbours,
-          double eta, double *weights) {
+          double eta, const double *weights) {
   // Initialize to zero
   memset(C, 0.0, 2 * (lMax + 1) * (lMax + 1) * gnsize * sizeof(double));
 
@@ -1757,7 +1762,7 @@ void getC(double *C, double *rw2, double *gns, double *summed, double rCut,
   }
 }
 
-void accumC(double *Cs, double *C, int lMax, int nMax, int typeI, int i,
+void accumC(double *Cs, const double *C, int lMax, int nMax, int typeI, int i,
             int nCoeffs) {
   for (int n = 0; n < nMax; ++n) {
     for (int l = 0; l < lMax + 1; ++l) {
@@ -1783,9 +1788,10 @@ void accumC(double *Cs, double *C, int lMax, int nMax, int typeI, int i,
  * (2013). Here the square root of the prefactor in the dot-product kernel is
  * used, so that after a possible dot-product the full prefactor is recovered.
  */
-void getP(py::detail::unchecked_mutable_reference<double, 2> &Ps, double *Cs,
-          int Nt, int lMax, int nMax, int Hs, double rCut2, int nFeatures,
-          bool crossover, int nCoeffs) {
+void getP(py::detail::unchecked_mutable_reference<double, 2> &Ps,
+          const double *Cs, const int Nt, const int lMax, const int nMax,
+          const int Hs, const double rCut2, const int /*nFeatures*/,
+          const bool crossover, const int nCoeffs) {
   // The current index in the final power spectrum array.
   int pIdx = 0;
 
@@ -1912,8 +1918,6 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
   double *ris = new double[nAtoms];
   double *weights = new double[nAtoms];
   double *oOri = new double[nAtoms];
-  double *oOr = getoOr(rw, rsize);
-  double *rw2 = getrw2(rw, rsize);
   //#define totrs (double *)malloc(sizeof(double) * nAtoms * rsize);
   double *oO4arri = new double[nAtoms * rsize];
   double *minExp = new double[nAtoms * rsize];
@@ -1925,13 +1929,14 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
   const int nCoeffs = 2 * (lMax + 1) * (lMax + 1) * nMax * Nt;
   const int nCoeffsAll = nCoeffs * Hs;
   double *Cs = new double[nCoeffsAll];
-  double *CsAve;
   memset(Cs, 0.0, nCoeffsAll * sizeof(double));
+  /*
+  double *CsAve;
   if (average == "inner") {
     CsAve = (double *)malloc(nCoeffs * sizeof(double));
     memset(CsAve, 0.0, nCoeffs * sizeof(double));
   }
-
+*/
   // Create a mapping between an atomic index and its internal index in the
   // output. The list of species is already ordered.
   map<int, int> ZIndexMap;
@@ -1978,17 +1983,22 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
           getIntegrand(Flir, Ylmi, rsize, nNeighbours, lMax, weights);
       delete[] Ylmi;
       delete[] Flir;
+      double *rw2 = getrw2(rw, rsize);
       getC(C, rw2, gss, summed, rCut, lMax, rsize, nMax, nCenters, nNeighbours,
            eta, weights);
+      delete[] summed;
+      delete[] rw2;
       accumC(Cs, C, lMax, nMax, j, i, nCoeffs);
-
-      free(summed);
     }
   }
 
   // If inner averaging is requested, average the coefficients over the
   // positions (axis 0 in cnnd matrix) before calculating the power spectrum.
   if (average == "inner") {
+    double *CsAve = new double[nCoeffs];
+
+    memset(CsAve, 0.0, nCoeffs * sizeof(double));
+
     for (int i = 0; i < Hs; ++i) {
       for (int j = 0; j < nCoeffs; ++j) {
         CsAve[j] += Cs[i * nCoeffs + j];
@@ -1998,7 +2008,7 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
       CsAve[j] = CsAve[j] / (double)Hs;
     }
     getP(Ps, CsAve, Nt, lMax, nMax, 1, rCut2, nFeatures, crossover, nCoeffs);
-    free(CsAve);
+    delete[] CsAve;
     // Average the power spectrum across atoms
   } else if (average == "outer") {
     // We allocate the memory and give array_t a pointer to it. This way
@@ -2032,7 +2042,5 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
   delete[] oO4arri;
   delete[] minExp;
   delete[] pluExp;
-  free(oOr);
-  free(rw2);
   delete[] C;
 }
