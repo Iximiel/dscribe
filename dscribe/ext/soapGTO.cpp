@@ -43,7 +43,7 @@ inline void getDeltasD(double *x, double *y, double *z,
     x[count] = pos(idx, 0) - ix;
     y[count] = pos(idx, 1) - iy;
     z[count] = pos(idx, 2) - iz;
-    count++;
+    ++count;
   };
 }
 /*================================================================*/
@@ -57,20 +57,12 @@ getRsZsD(const double *x, double *x2, double *x4, double *x6, double *x8,
          double *z2, double *z4, double *z6, double *z8, double *z10,
          double *z12, double *z14, double *z16, double *z18, double *r20,
          double *x20, double *y20, double *z20, int size, int lMax) {
-  double xx;
-  double yy;
-  double zz;
-  double rr;
 
   for (int i = 0; i < size; ++i) {
-    xx = x[i] * x[i];
-    yy = y[i] * y[i];
-    zz = z[i] * z[i];
-    rr = xx + yy + zz;
-    x2[i] = xx;
-    y2[i] = yy;
-    z2[i] = zz;
-    r2[i] = rr;
+    x2[i] = x[i] * x[i];
+    y2[i] = y[i] * y[i];
+    z2[i] = z[i] * z[i];
+    r2[i] = x2[i] + y2[i] + z2[i];
 
     if (lMax > 3) {
       r4[i] = r2[i] * r2[i];
@@ -200,7 +192,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
     for (int i = 0; i < Asize; ++i) {
       preExponentArrya[shift] =
           weights[i] * 1.5707963267948966 * exp(aOa[k] * r2[i]);
-      shift++;
+      ++shift;
     }
   }
 
@@ -210,7 +202,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
     for (int i = 0; i < Asize; ++i) {
       preExp = preExponentArrya[shift];
       sumMe += preExp;
-      shift++;
+      ++shift;
     }
     for (int n = 0; n < Ns; ++n) {
       C_mu(posI, typeJ, n, 0) += bOa[n * Ns + k] * sumMe;
@@ -221,7 +213,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
     for (int k = 0; k < Ns; ++k) {
       for (int i = 0; i < Asize; ++i) {
         preExp = preExponentArrya[shift];
-        shift++;
+        ++shift;
         preVal = 2.0 * aOa[k] * preExp;
         preValX = preVal * x[i];
         preValY = preVal * y[i];
@@ -244,7 +236,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
       for (int i = 0; i < Asize; ++i) {
         preExponentArrya[shift] =
             weights[i] * 2.7206990463849543 * exp(aOa[LNs + k] * r2[i]);
-        shift++;
+        ++shift;
       }
     }
 
@@ -261,7 +253,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
         sumMe1 += preExp * z[i];
         sumMe2 += preExp * x[i];
         sumMe3 += preExp * y[i];
-        shift++;
+        ++shift;
       }
       for (int n = 0; n < Ns; ++n) {
         C_mu(posI, typeJ, n, 1) += bOa[LNsNs + n * Ns + k] * sumMe1;
@@ -275,7 +267,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
       for (int k = 0; k < Ns; ++k) {
         for (int i = 0; i < Asize; ++i) {
           preExp = preExponentArrya[shift];
-          shift++;
+          ++shift;
           preVal = 2.0 * aOa[LNs + k] * preExp;
           if (return_derivatives) {
             preVal1 = preVal * z[i];
@@ -334,7 +326,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
         for (int i = 0; i < Asize; ++i) {
           double expSholder = aOa[LNs + k] * r2[i];
           preExponentArrya[shift] = weights[i] * exp(expSholder);
-          shift++;
+          ++shift;
         }
       }
 
@@ -348,7 +340,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
           for (int i = 0; i < Asize; ++i) {
             preExp = preExponentArrya[Asize * k + i];
             sumMe += preExp * preCoef[totalAN * (m - 4) + i];
-            shift++;
+            ++shift;
           }
           for (int n = 0; n < Ns; ++n) {
             C_mu(posI, typeJ, n, m) += bOa[LNsNs + n * Ns + k] * sumMe;
@@ -361,7 +353,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
         for (int k = 0; k < Ns; ++k) {
           for (int i = 0; i < Asize; ++i) {
             preExp = preExponentArrya[shift];
-            shift++;
+            ++shift;
             for (int m = restOfLs * restOfLs;
                  m < (restOfLs + 1) * (restOfLs + 1); ++m) {
               preVal =
@@ -423,7 +415,7 @@ void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
                       Cnnd_u(i, j, k, buffShift) * Cnnd_u(i, jd, kd, buffShift);
                 }
                 descriptor_mu(i, shiftAll) = prel * buffDouble;
-                shiftAll++;
+                ++shiftAll;
               }
             }
           } else {
@@ -436,7 +428,7 @@ void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
                       Cnnd_u(i, j, k, buffShift) * Cnnd_u(i, jd, kd, buffShift);
                 }
                 descriptor_mu(i, shiftAll) = prel * buffDouble;
-                shiftAll++;
+                ++shiftAll;
               }
             }
           }
@@ -508,7 +500,7 @@ void getPDev(py::detail::unchecked_mutable_reference<double, 4> &derivatives_mu,
                                CdevZ_u(i_atom, i_center, jd, k, buffShift));
                     }
                   }
-                  shiftAll++;
+                  ++shiftAll;
                 }
               }
             } else {
@@ -538,7 +530,7 @@ void getPDev(py::detail::unchecked_mutable_reference<double, 4> &derivatives_mu,
                                CdevZ_u(i_atom, i_center, j, k, buffShift));
                     }
                   }
-                  shiftAll++;
+                  ++shiftAll;
                 }
               }
             }
