@@ -47,17 +47,16 @@ inline void getDeltasD(double *x, double *y, double *z,
   };
 }
 /*================================================================*/
-inline void getRsZsD(double *x, double *x2, double *x4, double *x6, double *x8,
-                     double *x10, double *x12, double *x14, double *x16,
-                     double *x18, double *y, double *y2, double *y4, double *y6,
-                     double *y8, double *y10, double *y12, double *y14,
-                     double *y16, double *y18, double *z, double *r2,
-                     double *r4, double *r6, double *r8, double *r10,
-                     double *r12, double *r14, double *r16, double *r18,
-                     double *z2, double *z4, double *z6, double *z8,
-                     double *z10, double *z12, double *z14, double *z16,
-                     double *z18, double *r20, double *x20, double *y20,
-                     double *z20, int size, int lMax) {
+inline void
+getRsZsD(const double *x, double *x2, double *x4, double *x6, double *x8,
+         double *x10, double *x12, double *x14, double *x16, double *x18,
+         const double *y, double *y2, double *y4, double *y6, double *y8,
+         double *y10, double *y12, double *y14, double *y16, double *y18,
+         const double *z, double *r2, double *r4, double *r6, double *r8,
+         double *r10, double *r12, double *r14, double *r16, double *r18,
+         double *z2, double *z4, double *z6, double *z8, double *z10,
+         double *z12, double *z14, double *z16, double *z18, double *r20,
+         double *x20, double *y20, double *z20, int size, int lMax) {
   double xx;
   double yy;
   double zz;
@@ -161,9 +160,10 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
            double *prCofDX, double *prCofDY, double *prCofDZ,
            py::detail::unchecked_mutable_reference<double, 4> &C_mu,
            double *preCoef, double *x, double *y, double *z, double *r2,
-           double *weights, double *bOa, double *aOa, double *exes, int totalAN,
-           int Asize, int Ns, int Ntypes, int lMax, int posI, int typeJ,
-           const vector<int> &indices, bool return_derivatives) {
+           double *weights, double *bOa, double *aOa, double *exes,
+           const int totalAN, const int Asize, const int Ns, const int Ntypes,
+           const int lMax, const int posI, const int typeJ,
+           const vector<int> &indices, const bool return_derivatives) {
   if (Asize == 0) {
     return;
   }
@@ -193,7 +193,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
   double preValX3;
   double preValY3;
   double preValZ3;
-  double *preExponentArrya = (double *)malloc(Ns * Asize * sizeof(double));
+  double *preExponentArrya = new double[Ns * Asize];
   // l=0-------------------------------------------------------------------------------------------------
   int shift = 0;
   for (int k = 0; k < Ns; k++) {
@@ -383,6 +383,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
       }
     }
   }
+  delete[] preExponentArrya;
 }
 /*================================================================================================*/
 /**
@@ -657,6 +658,8 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   double *bOa = new double[(lMax + 1) * nMax2];
   double *aOa = new double[(lMax + 1) * nMax];
 
+  getAlphaBetaD(aOa, bOa, alphas, betas, nMax, lMax, oOeta, oOeta3O2);
+
   // Initialize temporary numpy array for storing the coefficients and the
   // averaged coefficients if inner averaging was requested.
   double *cnnd_raw = new double[nCenters * n_coeffs]();
@@ -682,8 +685,6 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   for (int i = 0; i < species.size(); ++i) {
     ZIndexMap[species(i)] = i;
   }
-
-  getAlphaBetaD(aOa, bOa, alphas, betas, nMax, lMax, oOeta, oOeta3O2);
 
   // Loop through the centers
   for (int i = 0; i < nCenters; i++) {
@@ -772,20 +773,15 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
 
       auto cnnd_ave_mu = cnnd_ave.mutable_unchecked<4>();
       auto cnnd_ave_u = cnnd_ave.unchecked<4>();
-      for (int i = 0; i < nCenters; i++) {
-        for (int j = 0; j < nSpecies; j++) {
-          for (int k = 0; k < nMax; k++) {
-            for (int l = 0; l < (lMax + 1) * (lMax + 1); l++) {
-              cnnd_ave_mu(0, j, k, l) += cnnd_u(i, j, k, l);
-            }
-          }
-        }
-      }
+
       for (int j = 0; j < nSpecies; j++) {
         for (int k = 0; k < nMax; k++) {
           for (int l = 0; l < (lMax + 1) * (lMax + 1); l++) {
+            for (int i = 0; i < nCenters; i++) {
+              cnnd_ave_mu(0, j, k, l) += cnnd_u(i, j, k, l);
+            }
             cnnd_ave_mu(0, j, k, l) =
-                cnnd_ave_mu(0, j, k, l) / (double)nCenters;
+                cnnd_ave_mu(0, j, k, l) / static_cast<double>(nCenters);
           }
         }
       }
@@ -800,17 +796,16 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
       py::array_t<double> ps_temp({nCenters, nFeatures}, ps_temp_raw);
       auto ps_temp_mu = ps_temp.mutable_unchecked<2>();
       getPD(ps_temp_mu, cnnd_u, nMax, nSpecies, nCenters, lMax, crossover);
-      for (int i = 0; i < nCenters; i++) {
-        for (int j = 0; j < nFeatures; j++) {
+      for (int j = 0; j < nFeatures; j++) {
+        for (int i = 0; i < nCenters; i++) {
           descriptor_mu(0, j) += ps_temp_mu(i, j);
         }
-      }
-      for (int j = 0; j < nFeatures; j++) {
-        descriptor_mu(0, j) = descriptor_mu(0, j) / (double)nCenters;
+        descriptor_mu(0, j) =
+            descriptor_mu(0, j) / static_cast<double>(nCenters);
       }
       delete[] ps_temp_raw;
-      // Regular power spectrum without averaging
     } else {
+      // Regular power spectrum without averaging
       getPD(descriptor_mu, cnnd_u, nMax, nSpecies, nCenters, lMax, crossover);
     }
   }
