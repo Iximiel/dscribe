@@ -62,7 +62,7 @@ getRsZsD(const double *x, double *x2, double *x4, double *x6, double *x8,
   double zz;
   double rr;
 
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < size; ++i) {
     xx = x[i] * x[i];
     yy = y[i] * y[i];
     zz = z[i] * z[i];
@@ -138,14 +138,14 @@ void getAlphaBetaD(double *aOa, double *bOa, double *alphas, double *betas,
   double oneO1alphaSqrt;
   double oneO1alphaSqrtX;
 
-  for (int myL = 0; myL < lMax + 1; myL++) {
-    for (int k = 0; k < Ns; k++) {
+  for (int myL = 0; myL < lMax + 1; ++myL) {
+    for (int k = 0; k < Ns; ++k) {
       oneO1alpha = 1.0 / (1.0 + oOeta * alphas[myL * Ns + k]);
       oneO1alphaSqrt = sqrt(oneO1alpha);
       aOa[myL * Ns + k] = -alphas[myL * Ns + k] * oneO1alpha;
       oneO1alpha2 = pow(oneO1alpha, myL + 1);
       oneO1alphaSqrtX = oneO1alphaSqrt * oneO1alpha2;
-      for (int n = 0; n < Ns; n++) {
+      for (int n = 0; n < Ns; ++n) {
         bOa[myL * NsNs + n * Ns + k] =
             oOeta3O2 * betas[myL * NsNs + n * Ns + k] * oneO1alphaSqrtX;
       }
@@ -196,8 +196,8 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
   double *preExponentArrya = new double[Ns * Asize];
   // l=0-------------------------------------------------------------------------------------------------
   int shift = 0;
-  for (int k = 0; k < Ns; k++) {
-    for (int i = 0; i < Asize; i++) {
+  for (int k = 0; k < Ns; ++k) {
+    for (int i = 0; i < Asize; ++i) {
       preExponentArrya[shift] =
           weights[i] * 1.5707963267948966 * exp(aOa[k] * r2[i]);
       shift++;
@@ -205,28 +205,28 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
   }
 
   shift = 0;
-  for (int k = 0; k < Ns; k++) {
+  for (int k = 0; k < Ns; ++k) {
     sumMe = 0;
-    for (int i = 0; i < Asize; i++) {
+    for (int i = 0; i < Asize; ++i) {
       preExp = preExponentArrya[shift];
       sumMe += preExp;
       shift++;
     }
-    for (int n = 0; n < Ns; n++) {
+    for (int n = 0; n < Ns; ++n) {
       C_mu(posI, typeJ, n, 0) += bOa[n * Ns + k] * sumMe;
     }
   }
   shift = 0;
   if (return_derivatives) {
-    for (int k = 0; k < Ns; k++) {
-      for (int i = 0; i < Asize; i++) {
+    for (int k = 0; k < Ns; ++k) {
+      for (int i = 0; i < Asize; ++i) {
         preExp = preExponentArrya[shift];
         shift++;
         preVal = 2.0 * aOa[k] * preExp;
         preValX = preVal * x[i];
         preValY = preVal * y[i];
         preValZ = preVal * z[i];
-        for (int n = 0; n < Ns; n++) {
+        for (int n = 0; n < Ns; ++n) {
           CDevX_mu(indices[i], posI, typeJ, n, 0) += bOa[n * Ns + k] * preValX;
           CDevY_mu(indices[i], posI, typeJ, n, 0) += bOa[n * Ns + k] * preValY;
           CDevZ_mu(indices[i], posI, typeJ, n, 0) += bOa[n * Ns + k] * preValZ;
@@ -240,8 +240,8 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
     LNs = Ns;
     shift = 0;
 
-    for (int k = 0; k < Ns; k++) {
-      for (int i = 0; i < Asize; i++) {
+    for (int k = 0; k < Ns; ++k) {
+      for (int i = 0; i < Asize; ++i) {
         preExponentArrya[shift] =
             weights[i] * 2.7206990463849543 * exp(aOa[LNs + k] * r2[i]);
         shift++;
@@ -252,18 +252,18 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
     double sumMe1;
     double sumMe2;
     double sumMe3;
-    for (int k = 0; k < Ns; k++) {
+    for (int k = 0; k < Ns; ++k) {
       sumMe1 = 0;
       sumMe2 = 0;
       sumMe3 = 0;
-      for (int i = 0; i < Asize; i++) {
+      for (int i = 0; i < Asize; ++i) {
         preExp = preExponentArrya[shift];
         sumMe1 += preExp * z[i];
         sumMe2 += preExp * x[i];
         sumMe3 += preExp * y[i];
         shift++;
       }
-      for (int n = 0; n < Ns; n++) {
+      for (int n = 0; n < Ns; ++n) {
         C_mu(posI, typeJ, n, 1) += bOa[LNsNs + n * Ns + k] * sumMe1;
         C_mu(posI, typeJ, n, 2) += bOa[LNsNs + n * Ns + k] * sumMe2;
         C_mu(posI, typeJ, n, 3) += bOa[LNsNs + n * Ns + k] * sumMe3;
@@ -272,8 +272,8 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
 
     if (return_derivatives) {
       shift = 0;
-      for (int k = 0; k < Ns; k++) {
-        for (int i = 0; i < Asize; i++) {
+      for (int k = 0; k < Ns; ++k) {
+        for (int i = 0; i < Asize; ++i) {
           preExp = preExponentArrya[shift];
           shift++;
           preVal = 2.0 * aOa[LNs + k] * preExp;
@@ -294,7 +294,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
             preValY3 = preVal3 * y[i] + preExp;
             preValZ3 = preVal3 * z[i];
           }
-          for (int n = 0; n < Ns; n++) {
+          for (int n = 0; n < Ns; ++n) {
             CDevX_mu(indices[i], posI, typeJ, n, 1) +=
                 bOa[LNsNs + n * Ns + k] * preValX1;
             CDevY_mu(indices[i], posI, typeJ, n, 1) +=
@@ -326,12 +326,12 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
   // kd*totalAN + i_atom]
   //
   if (lMax > 1) {
-    for (int restOfLs = 2; restOfLs <= lMax; restOfLs++) {
+    for (int restOfLs = 2; restOfLs <= lMax; ++restOfLs) {
       LNsNs = restOfLs * NsNs;
       LNs = restOfLs * Ns;
       shift = 0;
-      for (int k = 0; k < Ns; k++) {
-        for (int i = 0; i < Asize; i++) {
+      for (int k = 0; k < Ns; ++k) {
+        for (int i = 0; i < Asize; ++i) {
           double expSholder = aOa[LNs + k] * r2[i];
           preExponentArrya[shift] = weights[i] * exp(expSholder);
           shift++;
@@ -341,16 +341,16 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
       // double*  sumS = (double*)
       // malloc(sizeof(double)*(restOfLs+1)*(restOfLs+1))
       shift = 0;
-      for (int k = 0; k < Ns; k++) {
+      for (int k = 0; k < Ns; ++k) {
         for (int m = restOfLs * restOfLs; m < (restOfLs + 1) * (restOfLs + 1);
              m++) {
           sumMe = 0;
-          for (int i = 0; i < Asize; i++) {
+          for (int i = 0; i < Asize; ++i) {
             preExp = preExponentArrya[Asize * k + i];
             sumMe += preExp * preCoef[totalAN * (m - 4) + i];
             shift++;
           }
-          for (int n = 0; n < Ns; n++) {
+          for (int n = 0; n < Ns; ++n) {
             C_mu(posI, typeJ, n, m) += bOa[LNsNs + n * Ns + k] * sumMe;
           }
         }
@@ -358,18 +358,18 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
 
       if (return_derivatives) {
         shift = 0;
-        for (int k = 0; k < Ns; k++) {
-          for (int i = 0; i < Asize; i++) {
+        for (int k = 0; k < Ns; ++k) {
+          for (int i = 0; i < Asize; ++i) {
             preExp = preExponentArrya[shift];
             shift++;
             for (int m = restOfLs * restOfLs;
-                 m < (restOfLs + 1) * (restOfLs + 1); m++) {
+                 m < (restOfLs + 1) * (restOfLs + 1); ++m) {
               preVal =
                   2.0 * aOa[LNs + k] * preExp * preCoef[totalAN * (m - 4) + i];
               preValX = x[i] * preVal + preExp * prCofDX[totalAN * (m - 4) + i];
               preValY = y[i] * preVal + preExp * prCofDY[totalAN * (m - 4) + i];
               preValZ = z[i] * preVal + preExp * prCofDZ[totalAN * (m - 4) + i];
-              for (int n = 0; n < Ns; n++) {
+              for (int n = 0; n < Ns; ++n) {
                 CDevX_mu(indices[i], posI, typeJ, n, m) +=
                     bOa[LNsNs + n * Ns + k] * preValX;
                 CDevY_mu(indices[i], posI, typeJ, n, m) +=
@@ -401,12 +401,12 @@ void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
   // chemical environments, Phys. Rev. B 87, 184115 (2013). Here the square
   // root of the prefactor in the dot-product kernel is used, so that after a
   // possible dot-product the full prefactor is recovered.
-  for (int i = 0; i < nCenters; i++) {
+  for (int i = 0; i < nCenters; ++i) {
     int shiftAll = 0;
-    for (int j = 0; j < Ts; j++) {
+    for (int j = 0; j < Ts; ++j) {
       int jdLimit = crossover ? Ts : j + 1;
-      for (int jd = j; jd < jdLimit; jd++) {
-        for (int m = 0; m <= lMax; m++) {
+      for (int jd = j; jd < jdLimit; ++jd) {
+        for (int m = 0; m <= lMax; ++m) {
           double prel;
           if (m > 1) {
             prel = PI * sqrt(8.0 / (2.0 * m + 1.0)) * PI3;
@@ -414,8 +414,8 @@ void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
             prel = PI * sqrt(8.0 / (2.0 * m + 1.0));
           }
           if (j == jd) {
-            for (int k = 0; k < Ns; k++) {
-              for (int kd = k; kd < Ns; kd++) {
+            for (int k = 0; k < Ns; ++k) {
+              for (int kd = k; kd < Ns; ++kd) {
                 double buffDouble = 0;
                 for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
                      buffShift++) {
@@ -427,8 +427,8 @@ void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
               }
             }
           } else {
-            for (int k = 0; k < Ns; k++) {
-              for (int kd = 0; kd < Ns; kd++) {
+            for (int k = 0; k < Ns; ++k) {
+              for (int kd = 0; kd < Ns; ++kd) {
                 double buffDouble = 0;
                 for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
                      buffShift++) {
@@ -475,15 +475,15 @@ void getPDev(py::detail::unchecked_mutable_reference<double, 4> &derivatives_mu,
     for (int j_idx = 0; j_idx < indices.size(); ++j_idx) {
       int i_center = indices[j_idx];
       int shiftAll = 0;
-      for (int j = 0; j < Ts; j++) {
+      for (int j = 0; j < Ts; ++j) {
         int jdLimit = crossover ? Ts : j + 1;
-        for (int jd = j; jd < jdLimit; jd++) {
-          for (int m = 0; m <= lMax; m++) {
+        for (int jd = j; jd < jdLimit; ++jd) {
+          for (int m = 0; m <= lMax; ++m) {
             double prel = m > 1 ? PI * sqrt(8.0 / (2.0 * m + 1.0)) * PI3
                                 : PI * sqrt(8.0 / (2.0 * m + 1.0));
             if (j == jd) {
-              for (int k = 0; k < Ns; k++) {
-                for (int kd = k; kd < Ns; kd++) {
+              for (int k = 0; k < Ns; ++k) {
+                for (int kd = k; kd < Ns; ++kd) {
                   for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
                        buffShift++) {
                     if (abs(Cnnd_u(i_center, j, k, buffShift)) > 1e-8 ||
@@ -512,8 +512,8 @@ void getPDev(py::detail::unchecked_mutable_reference<double, 4> &derivatives_mu,
                 }
               }
             } else {
-              for (int k = 0; k < Ns; k++) {
-                for (int kd = 0; kd < Ns; kd++) {
+              for (int k = 0; k < Ns; ++k) {
+                for (int kd = 0; kd < Ns; ++kd) {
                   for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
                        buffShift++) {
                     if (abs(Cnnd_u(i_center, j, k, buffShift)) > 1e-8 ||
@@ -687,7 +687,7 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   }
 
   // Loop through the centers
-  for (int i = 0; i < nCenters; i++) {
+  for (int i = 0; i < nCenters; ++i) {
 
     // Get all neighbouring atoms for the center i
     double ix = centers_u(i, 0);
@@ -774,10 +774,10 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
       auto cnnd_ave_mu = cnnd_ave.mutable_unchecked<4>();
       auto cnnd_ave_u = cnnd_ave.unchecked<4>();
 
-      for (int j = 0; j < nSpecies; j++) {
-        for (int k = 0; k < nMax; k++) {
-          for (int l = 0; l < (lMax + 1) * (lMax + 1); l++) {
-            for (int i = 0; i < nCenters; i++) {
+      for (int j = 0; j < nSpecies; ++j) {
+        for (int k = 0; k < nMax; ++k) {
+          for (int l = 0; l < (lMax + 1) * (lMax + 1); ++l) {
+            for (int i = 0; i < nCenters; ++i) {
               cnnd_ave_mu(0, j, k, l) += cnnd_u(i, j, k, l);
             }
             cnnd_ave_mu(0, j, k, l) =
@@ -796,8 +796,8 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
       py::array_t<double> ps_temp({nCenters, nFeatures}, ps_temp_raw);
       auto ps_temp_mu = ps_temp.mutable_unchecked<2>();
       getPD(ps_temp_mu, cnnd_u, nMax, nSpecies, nCenters, lMax, crossover);
-      for (int j = 0; j < nFeatures; j++) {
-        for (int i = 0; i < nCenters; i++) {
+      for (int j = 0; j < nFeatures; ++j) {
+        for (int i = 0; i < nCenters; ++i) {
           descriptor_mu(0, j) += ps_temp_mu(i, j);
         }
         descriptor_mu(0, j) =

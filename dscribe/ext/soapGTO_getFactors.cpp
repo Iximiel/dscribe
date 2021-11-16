@@ -12,7 +12,7 @@ void getCfactorsD(double *preCoef, double *prCofDX, double *prCofDY,
                   double *y20, double *z20, int totalAN, int lMax,
                   const bool return_derivatives) {
 
-  for (int i = 0; i < Asize; i++) {
+  for (int i = 0; i < Asize; ++i) {
     if (lMax > 1) {
       preCoef[+i] = 1.09254843059208 * x[i] * y[i];
       preCoef[totalAN * 1 + i] = 1.09254843059208 * y[i] * z[i];
