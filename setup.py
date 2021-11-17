@@ -71,11 +71,11 @@ extensions = [
         language="c++",
         extra_compile_args=cpp_extra_compile_args
         + [
-            "-fvisibility=hidden",
+            "-fvisibility=hidden",  # the -fvisibility flag is needed by pybind11
             # "-Werror",
-            "-Wall",
-            "-Wextra",
-        ],  # the -fvisibility flag is needed by pybind11
+            # "-Wall",
+            # "-Wextra",
+        ],
         extra_link_args=cpp_extra_link_args,
     )
 ]

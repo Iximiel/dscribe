@@ -1,3 +1,5 @@
+#ifndef SOAPGTO_GETFACTOR_H
+#define SOAPGTO_GETFACTOR_H
 void getCfactorsD(double *preCoef, double *prCofDX, double *prCofDY,
                   double *prCofDZ, int Asize, double *x, double *x2, double *x4,
                   double *x6, double *x8, double *x10, double *x12, double *x14,
@@ -10,3 +12,5 @@ void getCfactorsD(double *preCoef, double *prCofDX, double *prCofDY,
                   double *r16, double *r18, double *r20, double *x20,
                   double *y20, double *z20, int totalAN, int lMax,
                   const bool return_derivatives);
+
+#endif // SOAPGTO_GETFACTOR_H

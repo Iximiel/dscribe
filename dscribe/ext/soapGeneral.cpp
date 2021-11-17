@@ -1526,7 +1526,7 @@ pair<int, int> getDeltas(double *dx, double *dy, double *dz, double *ri,
                          double eta, const py::array_t<double> &positions,
                          const double ix, const double iy, const double iz,
                          const vector<int> &indices, const int rsize,
-                         const int Ihpos, const int Itype) {
+                         const int /*Ihpos*/, const int /*Itype*/) {
   int iNeighbour = 0;
   int iCenter = 0;
   const int nNeighbours = indices.size();
@@ -1838,71 +1838,6 @@ void getP(py::detail::unchecked_mutable_reference<double, 2> &Ps,
           }
         }
       }
-
-      /*
-      //this is the original version
-      if (Z1 == Z2) {
-        for (int l = 0; l < lMaxp1; ++l) {
-          const double normalizationConst =
-              PI * sqrt(8.0 / (2.0 * l + 1.0)) * 39.478417604 * rCut2;
-          const int twoLlMaxp1 = l * 2 * lMaxp1;
-          for (int N1 = 0; N1 < nMax; N1++) {
-            const int addrN1 = 2 * lMaxp1 * lMaxp1 * N1;
-            for (int N2 = N1; N2 < nMax; N2++) {
-              const int addrN2 = 2 * lMaxp1 * lMaxp1 * N2;
-              double sum =
-                  Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1]    // m=0
-                  * Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1]; // m=0
-              for (int m = 1; m < l + 1; ++m) {
-                sum +=
-                    2 *
-                    (Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m] *
-                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
-                            2 * m] +
-                     Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m +
-                        1] *
-                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
-                            2 * m + 1]);
-              }
-              // Applying normalization and other constants
-              Ps(i, pIdx) = normalizationConst * sum;
-              ++pIdx;
-            }
-          }
-        }
-        // If the species are different, then there is no symmetry in the
-        // radial basis and we have to loop over all pairwise combinations.
-      } else {
-        for (int l = 0; l < lMax + 1; ++l) {
-          const double normalizationConst =
-              PI * sqrt(8.0 / (2.0 * l + 1.0)) * 39.478417604 * rCut2;
-          const int twoLlMaxp1 = l * 2 * lMaxp1;
-          for (int N1 = 0; N1 < nMax; N1++) {
-            const int addrN1 = 2 * lMaxp1 * lMaxp1 * N1;
-            for (int N2 = 0; N2 < nMax; N2++) {
-              const int addrN2 = 2 * lMaxp1 * lMaxp1 * N2;
-              double sum =
-                  Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1]    // m=0
-                  * Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1]; // m=0
-              for (int m = 1; m < l + 1; ++m) {
-                sum +=
-                    2 *
-                    (Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m] *
-                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
-                            2 * m] +
-                     Cs[i * nCoeffs + addrZ1 + addrN1 + twoLlMaxp1 + 2 * m +
-                        1] *
-                         Cs[i * nCoeffs + addrZ2 + addrN2 + twoLlMaxp1 +
-                            2 * m + 1]);
-              }
-              // Applying normalization and other constants
-              Ps(i, pIdx) = normalizationConst * sum;
-              ++pIdx;
-            }
-          }
-        }
-      }
-    }*/
     }
   }
 }
@@ -1914,9 +1849,9 @@ void soapGeneral(py::array_t<double> PsArr, py::array_t<double> positions,
                  const double eta, py::dict weighting,
                  py::array_t<double> rwArr, py::array_t<double> gssArr,
                  const bool crossover, string average, CellList cellList) {
-  const int nAtoms = static_cast<const int>(atomicNumbersArr.shape(0));
-  const int Nt = static_cast<const int>(orderedSpeciesArr.shape(0));
-  const int Hs = static_cast<const int>(HposArr.shape(0));
+  const int nAtoms = static_cast<int>(atomicNumbersArr.shape(0));
+  const int Nt = static_cast<int>(orderedSpeciesArr.shape(0));
+  const int Hs = static_cast<int>(HposArr.shape(0));
   const int nFeatures = crossover
                             ? (Nt * nMax) * (Nt * nMax + 1) / 2 * (lMax + 1)
                             : Nt * (lMax + 1) * ((nMax + 1) * nMax) / 2;
