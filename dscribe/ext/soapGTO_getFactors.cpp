@@ -9,7 +9,7 @@ void getCfactorsD(double *preCoef, double *prCofDX, double *prCofDY,
                   double *z16, double *z18, double *r2, double *r4, double *r6,
                   double *r8, double *r10, double *r12, double *r14,
                   double *r16, double *r18, double *r20, double *x20,
-                  double *y20, double *z20, int totalAN, int lMax,
+                  double *y20, double *z20, int totalAN, const int lMax,
                   const bool return_derivatives) {
   if (lMax < 2) {
     return;
