@@ -393,8 +393,9 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
  * Used to calculate the partial power spectrum.
  */
 void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
-           py::detail::unchecked_reference<double, 4> &Cnnd_u, int Ns, int Ts,
-           int nCenters, int lMax, bool crossover) {
+           py::detail::unchecked_reference<double, 4> &Cnnd_u, const int Ns,
+           const int Ts, const int nCenters, const int lMax,
+           const bool crossover) {
 
   // int NsTs100 = Ns * Ts * ((lMax + 1) * (lMax + 1));
 
@@ -407,57 +408,24 @@ void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
   for (int i = 0; i < nCenters; ++i) {
     int shiftAll = 0;
     for (int j = 0; j < Ts; ++j) {
-      int jdLimit = crossover ? Ts : j + 1;
+      const int jdLimit = crossover ? Ts : j + 1;
       for (int jd = j; jd < jdLimit; ++jd) {
         for (int m = 0; m <= lMax; ++m) {
-          double prel;
-          if (m > 1) {
-            prel = PI * sqrt(8.0 / (2.0 * m + 1.0)) * PI3;
-          } else {
-            prel = PI * sqrt(8.0 / (2.0 * m + 1.0));
-          }
-          /*
-          for (int k = (j == jd)?k:0; k < Ns; ++k) {
-              for (int kd = k; kd < Ns; ++kd) {
-                double buffDouble = 0;
-                for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
-                     buffShift++) {
-                  buffDouble +=
-                      Cnnd_u(i, j, k, buffShift) * Cnnd_u(i, jd, kd, buffShift);
-                }
-                descriptor_mu(i, shiftAll) = prel * buffDouble;
-                ++shiftAll;
+          const double prel = m > 1 ? PI * sqrt(8.0 / (2.0 * m + 1.0)) * PI3
+                                    : PI * sqrt(8.0 / (2.0 * m + 1.0));
+          for (int k = 0; k < Ns; ++k) {
+            for (int kd = (j == jd) ? k : 0; kd < Ns; ++kd) {
+              double buffDouble = 0.0;
+              for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
+                   buffShift++) {
+                buffDouble +=
+                    Cnnd_u(i, j, k, buffShift) * Cnnd_u(i, jd, kd, buffShift);
               }
-            }
-          */
-          if (j == jd) {
-            for (int k = 0; k < Ns; ++k) {
-              for (int kd = k; kd < Ns; ++kd) {
-                double buffDouble = 0;
-                for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
-                     buffShift++) {
-                  buffDouble +=
-                      Cnnd_u(i, j, k, buffShift) * Cnnd_u(i, jd, kd, buffShift);
-                }
-                descriptor_mu(i, shiftAll) = prel * buffDouble;
-                ++shiftAll;
-              }
-            }
-          } else {
-            for (int k = 0; k < Ns; ++k) {
-              for (int kd = 0; kd < Ns; ++kd) {
-                double buffDouble = 0;
-                for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
-                     buffShift++) {
-                  buffDouble +=
-                      Cnnd_u(i, j, k, buffShift) * Cnnd_u(i, jd, kd, buffShift);
-                }
-                descriptor_mu(i, shiftAll) = prel * buffDouble;
-                ++shiftAll;
-              }
+              descriptor_mu(i, shiftAll) = prel * buffDouble;
+              ++shiftAll;
             }
           }
-        } // end ifelse
+        }
       }
     }
   }
@@ -467,14 +435,15 @@ void getPD(py::detail::unchecked_mutable_reference<double, 2> &descriptor_mu,
  * Used to calculate the partial power spectrum derivatives.
  */
 void getPDev(py::detail::unchecked_mutable_reference<double, 4> &derivatives_mu,
-             py::detail::unchecked_reference<double, 2> &positions_u,
-             py::detail::unchecked_reference<int, 1> &indices_u,
-             CellList &cell_list,
+             const py::detail::unchecked_reference<double, 2> &positions_u,
+             const py::detail::unchecked_reference<int, 1> &indices_u,
+             const CellList &cell_list,
              py::detail::unchecked_reference<double, 5> &CdevX_u,
              py::detail::unchecked_reference<double, 5> &CdevY_u,
              py::detail::unchecked_reference<double, 5> &CdevZ_u,
-             py::detail::unchecked_reference<double, 4> &Cnnd_u, int Ns, int Ts,
-             int nCenters, int lMax, bool crossover) {
+             py::detail::unchecked_reference<double, 4> &Cnnd_u, const int Ns,
+             const int Ts, const int /*nCenters*/, const int lMax,
+             const bool crossover) {
 
   // Loop over all given atomic indices for which the derivatives should be
   // calculated for.
@@ -490,99 +459,42 @@ void getPDev(py::detail::unchecked_mutable_reference<double, 4> &derivatives_mu,
 
     // Loop through all neighbouring centers
     for (unsigned j_idx = 0; j_idx < indices.size(); ++j_idx) {
-      int i_center = indices[j_idx];
+      const int i_center = indices[j_idx];
       int shiftAll = 0;
       for (int j = 0; j < Ts; ++j) {
-        int jdLimit = crossover ? Ts : j + 1;
+        const int jdLimit = crossover ? Ts : j + 1;
         for (int jd = j; jd < jdLimit; ++jd) {
           for (int m = 0; m <= lMax; ++m) {
-            double prel = m > 1 ? PI * sqrt(8.0 / (2.0 * m + 1.0)) * PI3
-                                : PI * sqrt(8.0 / (2.0 * m + 1.0));
-            if (j == jd) {
-              /*
-  for (int k = 0; k < Ns; ++k) {
-    for (int kd = (j == jd)?k:0; kd < Ns; ++kd) {
-      for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
-           buffShift++) {
-        if (abs(Cnnd_u(i_center, j, k, buffShift)) > 1e-8 ||
-  abs(Cnnd_u(i_center, jd, kd, buffShift)) > 1e-8) { derivatives_mu(i_center,
-  i_idx, 0, shiftAll) += prel * (Cnnd_u(i_center, j, k, buffShift) *
-  CdevX_u(i_atom, i_center, jd, kd, buffShift) + Cnnd_u(i_center, jd, kd,
-  buffShift) * CdevX_u(i_atom, i_center, j, k, buffShift));
-          derivatives_mu(i_center, i_idx, 1, shiftAll) +=
-              prel *
-              (Cnnd_u(i_center, j, k, buffShift) *
-                   CdevY_u(i_atom, i_center, jd, kd, buffShift) +
-               Cnnd_u(i_center, jd, kd, buffShift) * CdevY_u(i_atom, i_center,
-  j, k, buffShift)); derivatives_mu(i_center, i_idx, 2, shiftAll) += prel *
-              (Cnnd_u(i_center, j, k, buffShift) *
-                   CdevZ_u(i_atom, i_center, jd, kd, buffShift) +
-               Cnnd_u(i_center, jd, kd, buffShift) * CdevZ_u(i_atom, i_center,
-  j, k, buffShift));
-        }
-      }
-      ++shiftAll;
-    }
-  }
-              */
-              for (int k = 0; k < Ns; ++k) {
-                for (int kd = k; kd < Ns; ++kd) {
-                  for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
-                       buffShift++) {
-                    if (abs(Cnnd_u(i_center, j, k, buffShift)) > 1e-8 ||
-                        abs(Cnnd_u(i_center, j, kd, buffShift)) > 1e-8) {
-                      derivatives_mu(i_center, i_idx, 0, shiftAll) +=
-                          prel *
-                          (Cnnd_u(i_center, j, k, buffShift) *
-                               CdevX_u(i_atom, i_center, jd, kd, buffShift) +
-                           Cnnd_u(i_center, j, kd, buffShift) *
-                               CdevX_u(i_atom, i_center, jd, k, buffShift));
-                      derivatives_mu(i_center, i_idx, 1, shiftAll) +=
-                          prel *
-                          (Cnnd_u(i_center, j, k, buffShift) *
-                               CdevY_u(i_atom, i_center, jd, kd, buffShift) +
-                           Cnnd_u(i_center, j, kd, buffShift) *
-                               CdevY_u(i_atom, i_center, jd, k, buffShift));
-                      derivatives_mu(i_center, i_idx, 2, shiftAll) +=
-                          prel *
-                          (Cnnd_u(i_center, j, k, buffShift) *
-                               CdevZ_u(i_atom, i_center, jd, kd, buffShift) +
-                           Cnnd_u(i_center, j, kd, buffShift) *
-                               CdevZ_u(i_atom, i_center, jd, k, buffShift));
-                    }
+            const double prel = m > 1 ? PI * sqrt(8.0 / (2.0 * m + 1.0)) * PI3
+                                      : PI * sqrt(8.0 / (2.0 * m + 1.0));
+
+            for (int k = 0; k < Ns; ++k) {
+              for (int kd = (j == jd) ? k : 0; kd < Ns; ++kd) {
+                for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
+                     buffShift++) {
+                  if (abs(Cnnd_u(i_center, j, k, buffShift)) > 1e-8 ||
+                      abs(Cnnd_u(i_center, jd, kd, buffShift)) > 1e-8) {
+                    derivatives_mu(i_center, i_idx, 0, shiftAll) +=
+                        prel *
+                        (Cnnd_u(i_center, j, k, buffShift) *
+                             CdevX_u(i_atom, i_center, jd, kd, buffShift) +
+                         Cnnd_u(i_center, jd, kd, buffShift) *
+                             CdevX_u(i_atom, i_center, j, k, buffShift));
+                    derivatives_mu(i_center, i_idx, 1, shiftAll) +=
+                        prel *
+                        (Cnnd_u(i_center, j, k, buffShift) *
+                             CdevY_u(i_atom, i_center, jd, kd, buffShift) +
+                         Cnnd_u(i_center, jd, kd, buffShift) *
+                             CdevY_u(i_atom, i_center, j, k, buffShift));
+                    derivatives_mu(i_center, i_idx, 2, shiftAll) +=
+                        prel *
+                        (Cnnd_u(i_center, j, k, buffShift) *
+                             CdevZ_u(i_atom, i_center, jd, kd, buffShift) +
+                         Cnnd_u(i_center, jd, kd, buffShift) *
+                             CdevZ_u(i_atom, i_center, j, k, buffShift));
                   }
-                  ++shiftAll;
                 }
-              }
-            } else {
-              for (int k = 0; k < Ns; ++k) {
-                for (int kd = 0; kd < Ns; ++kd) {
-                  for (int buffShift = m * m; buffShift < (m + 1) * (m + 1);
-                       buffShift++) {
-                    if (abs(Cnnd_u(i_center, j, k, buffShift)) > 1e-8 ||
-                        abs(Cnnd_u(i_center, jd, kd, buffShift)) > 1e-8) {
-                      derivatives_mu(i_center, i_idx, 0, shiftAll) +=
-                          prel *
-                          (Cnnd_u(i_center, j, k, buffShift) *
-                               CdevX_u(i_atom, i_center, jd, kd, buffShift) +
-                           Cnnd_u(i_center, jd, kd, buffShift) *
-                               CdevX_u(i_atom, i_center, j, k, buffShift));
-                      derivatives_mu(i_center, i_idx, 1, shiftAll) +=
-                          prel *
-                          (Cnnd_u(i_center, j, k, buffShift) *
-                               CdevY_u(i_atom, i_center, jd, kd, buffShift) +
-                           Cnnd_u(i_center, jd, kd, buffShift) *
-                               CdevY_u(i_atom, i_center, j, k, buffShift));
-                      derivatives_mu(i_center, i_idx, 2, shiftAll) +=
-                          prel *
-                          (Cnnd_u(i_center, j, k, buffShift) *
-                               CdevZ_u(i_atom, i_center, jd, kd, buffShift) +
-                           Cnnd_u(i_center, jd, kd, buffShift) *
-                               CdevZ_u(i_atom, i_center, j, k, buffShift));
-                    }
-                  }
-                  ++shiftAll;
-                }
+                ++shiftAll;
               }
             }
           }
@@ -623,67 +535,6 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   const int n_coeffs = nSpecies * nMax * (lMax + 1) * (lMax + 1);
 
   double *weights = new double[totalAN];
-  double *dx = new double[totalAN];
-  double *dy = new double[totalAN];
-  double *dz = new double[totalAN];
-  constexpr int to2 = 0;
-  constexpr int to4 = 1;
-  constexpr int to6 = 2;
-  constexpr int to8 = 3;
-  constexpr int to10 = 4;
-  constexpr int to12 = 5;
-  constexpr int to14 = 6;
-  constexpr int to16 = 7;
-  constexpr int to18 = 8;
-  constexpr int to20 = 9;
-  constexpr int to1 = 10;
-  // vectors should help with the memory leaks
-  std::array<std::vector<double>, 10> Xpow = {
-      std::vector<double>(totalAN),                    // x2
-      std::vector<double>((lMax > 3) ? totalAN : 0),   // x4
-      std::vector<double>((lMax > 5) ? totalAN : 0),   // x6
-      std::vector<double>((lMax > 7) ? totalAN : 0),   // x8
-      std::vector<double>((lMax > 9) ? totalAN : 0),   // x10
-      std::vector<double>((lMax > 11) ? totalAN : 0),  // x12
-      std::vector<double>((lMax > 13) ? totalAN : 0),  // x14
-      std::vector<double>((lMax > 15) ? totalAN : 0),  // x16
-      std::vector<double>((lMax > 17) ? totalAN : 0),  // x18
-      std::vector<double>((lMax > 19) ? totalAN : 0)}; // x20
-  std::array<std::vector<double>, 10> Ypow = {
-      std::vector<double>(totalAN),                    // y2
-      std::vector<double>((lMax > 3) ? totalAN : 0),   // y4
-      std::vector<double>((lMax > 5) ? totalAN : 0),   // y6
-      std::vector<double>((lMax > 7) ? totalAN : 0),   // y8
-      std::vector<double>((lMax > 9) ? totalAN : 0),   // y10
-      std::vector<double>((lMax > 11) ? totalAN : 0),  // y12
-      std::vector<double>((lMax > 13) ? totalAN : 0),  // y14
-      std::vector<double>((lMax > 15) ? totalAN : 0),  // y16
-      std::vector<double>((lMax > 17) ? totalAN : 0),  // y18
-      std::vector<double>((lMax > 19) ? totalAN : 0)}; // y20
-  std::array<std::vector<double>, 10> Zpow = {
-      std::vector<double>(totalAN),                    // z2
-      std::vector<double>((lMax > 3) ? totalAN : 0),   // z4
-      std::vector<double>((lMax > 5) ? totalAN : 0),   // z6
-      std::vector<double>((lMax > 7) ? totalAN : 0),   // z8
-      std::vector<double>((lMax > 9) ? totalAN : 0),   // z10
-      std::vector<double>((lMax > 11) ? totalAN : 0),  // z12
-      std::vector<double>((lMax > 13) ? totalAN : 0),  // z14
-      std::vector<double>((lMax > 15) ? totalAN : 0),  // z16
-      std::vector<double>((lMax > 17) ? totalAN : 0),  // z18
-      std::vector<double>((lMax > 19) ? totalAN : 0)}; // z20
-
-  std::array<std::vector<double>, 11> Rpow = {
-      std::vector<double>(totalAN),                   // r2
-      std::vector<double>((lMax > 3) ? totalAN : 0),  // r4
-      std::vector<double>((lMax > 5) ? totalAN : 0),  // r6
-      std::vector<double>((lMax > 7) ? totalAN : 0),  // r8
-      std::vector<double>((lMax > 9) ? totalAN : 0),  // r10
-      std::vector<double>((lMax > 11) ? totalAN : 0), // r12
-      std::vector<double>((lMax > 13) ? totalAN : 0), // r14
-      std::vector<double>((lMax > 15) ? totalAN : 0), // r16
-      std::vector<double>((lMax > 17) ? totalAN : 0), // r18
-      std::vector<double>((lMax > 19) ? totalAN : 0), // r20
-      std::vector<double>(totalAN)};                  // r1
 
   double *exes = new double[totalAN];
   // -4 -> no need for l=0, l=1.
@@ -746,6 +597,69 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
       atomicTypeMap[Z].push_back(idx);
     };
 
+    double *dx = new double[totalAN];
+    double *dy = new double[totalAN];
+    double *dz = new double[totalAN];
+    constexpr int to2 = 0;
+    constexpr int to4 = 1;
+    constexpr int to6 = 2;
+    constexpr int to8 = 3;
+    constexpr int to10 = 4;
+    constexpr int to12 = 5;
+    constexpr int to14 = 6;
+    constexpr int to16 = 7;
+    constexpr int to18 = 8;
+    constexpr int to20 = 9;
+    constexpr int to1 = 10;
+    // vectors and array can be used to not bother about memory
+    // the .data() function will be used to pass the raw pointer to the data
+    std::array<std::vector<double>, 10> Xpow = {
+        std::vector<double>(totalAN),                    // x2
+        std::vector<double>((lMax > 3) ? totalAN : 0),   // x4
+        std::vector<double>((lMax > 5) ? totalAN : 0),   // x6
+        std::vector<double>((lMax > 7) ? totalAN : 0),   // x8
+        std::vector<double>((lMax > 9) ? totalAN : 0),   // x10
+        std::vector<double>((lMax > 11) ? totalAN : 0),  // x12
+        std::vector<double>((lMax > 13) ? totalAN : 0),  // x14
+        std::vector<double>((lMax > 15) ? totalAN : 0),  // x16
+        std::vector<double>((lMax > 17) ? totalAN : 0),  // x18
+        std::vector<double>((lMax > 19) ? totalAN : 0)}; // x20
+    std::array<std::vector<double>, 10> Ypow = {
+        std::vector<double>(totalAN),                    // y2
+        std::vector<double>((lMax > 3) ? totalAN : 0),   // y4
+        std::vector<double>((lMax > 5) ? totalAN : 0),   // y6
+        std::vector<double>((lMax > 7) ? totalAN : 0),   // y8
+        std::vector<double>((lMax > 9) ? totalAN : 0),   // y10
+        std::vector<double>((lMax > 11) ? totalAN : 0),  // y12
+        std::vector<double>((lMax > 13) ? totalAN : 0),  // y14
+        std::vector<double>((lMax > 15) ? totalAN : 0),  // y16
+        std::vector<double>((lMax > 17) ? totalAN : 0),  // y18
+        std::vector<double>((lMax > 19) ? totalAN : 0)}; // y20
+    std::array<std::vector<double>, 10> Zpow = {
+        std::vector<double>(totalAN),                    // z2
+        std::vector<double>((lMax > 3) ? totalAN : 0),   // z4
+        std::vector<double>((lMax > 5) ? totalAN : 0),   // z6
+        std::vector<double>((lMax > 7) ? totalAN : 0),   // z8
+        std::vector<double>((lMax > 9) ? totalAN : 0),   // z10
+        std::vector<double>((lMax > 11) ? totalAN : 0),  // z12
+        std::vector<double>((lMax > 13) ? totalAN : 0),  // z14
+        std::vector<double>((lMax > 15) ? totalAN : 0),  // z16
+        std::vector<double>((lMax > 17) ? totalAN : 0),  // z18
+        std::vector<double>((lMax > 19) ? totalAN : 0)}; // z20
+
+    std::array<std::vector<double>, 11> Rpow = {
+        std::vector<double>(totalAN),                   // r2
+        std::vector<double>((lMax > 3) ? totalAN : 0),  // r4
+        std::vector<double>((lMax > 5) ? totalAN : 0),  // r6
+        std::vector<double>((lMax > 7) ? totalAN : 0),  // r8
+        std::vector<double>((lMax > 9) ? totalAN : 0),  // r10
+        std::vector<double>((lMax > 11) ? totalAN : 0), // r12
+        std::vector<double>((lMax > 13) ? totalAN : 0), // r14
+        std::vector<double>((lMax > 15) ? totalAN : 0), // r16
+        std::vector<double>((lMax > 17) ? totalAN : 0), // r18
+        std::vector<double>((lMax > 19) ? totalAN : 0), // r20
+        std::vector<double>(totalAN)};                  // r1
+
     // Loop through neighbours sorted by type
     for (const auto &ZIndexPair : atomicTypeMap) {
 
@@ -791,11 +705,11 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
             totalAN, n_neighbours, nMax, nSpecies, lMax, i, j,
             ZIndexPair.second, return_derivatives);
     }
-  }
-  delete[] dx;
-  delete[] dy;
-  delete[] dz;
 
+    delete[] dx;
+    delete[] dy;
+    delete[] dz;
+  }
   delete[] exes;
   delete[] preCoef;
   delete[] bOa;
