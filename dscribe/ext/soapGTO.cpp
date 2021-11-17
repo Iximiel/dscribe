@@ -25,10 +25,14 @@ limitations under the License.
 #include <set>
 #include <string>
 
-#define PI2 9.86960440108936
-#define PI 3.141592653589793238
-#define PI3 31.00627668029982
-#define PIHalf 1.57079632679490
+//#define PI2 9.86960440108936
+constexpr double PI2 = 9.86960440108936;
+//#define PI 3.141592653589793238
+constexpr double PI = 3.141592653589793238;
+//#define PI3 31.00627668029982
+constexpr double PI3 = 31.00627668029982;
+//#define PIHalf 1.57079632679490
+constexpr double PIHalf = 1.57079632679490;
 /*===========================================================*/
 // inline int getCrosNumD(int n) { return n * (n + 1) / 2; }
 /*================================================================*/
@@ -47,67 +51,67 @@ inline void getDeltasD(double *x, double *y, double *z,
   };
 }
 /*================================================================*/
-inline void getRsZsD(const double * /*x*/, const double *x2, double *x4,
-                     double *x6, double *x8, double *x10, double *x12,
-                     double *x14, double *x16, double *x18, const double *y,
-                     const double * /*y2*/, double *y4, double *y6, double *y8,
-                     double *y10, double *y12, double *y14, double *y16,
-                     double *y18, const double * /*z*/, const double *r2,
-                     double *r4, double *r6, double *r8, double *r10,
-                     double *r12, double *r14, double *r16, double *r18,
-                     const double *z2, double *z4, double *z6, double *z8,
-                     double *z10, double *z12, double *z14, double *z16,
-                     double *z18, double *r20, double *x20, double *y20,
-                     double *z20, const int size, const int lMax) {
-
+inline void
+getRsZsD(const double * /*x*/, const double *x2, double *x4, double *x6,
+         double *x8, double *x10, double *x12, double *x14, double *x16,
+         double *x18, const double * /*y*/, const double *y2, double *y4,
+         double *y6, double *y8, double *y10, double *y12, double *y14,
+         double *y16, double *y18, const double * /*z*/, const double *r2,
+         double *r4, double *r6, double *r8, double *r10, double *r12,
+         double *r14, double *r16, double *r18, const double *z2, double *z4,
+         double *z6, double *z8, double *z10, double *z12, double *z14,
+         double *z16, double *z18, double *r20, double *x20, double *y20,
+         double *z20, const int size, const int lMax) {
+  if (lMax < 4) {
+    return;
+  }
   for (int i = 0; i < size; ++i) {
-    // squared Values are calculated in
-    if (lMax > 3) {
-      r4[i] = r2[i] * r2[i];
-      z4[i] = z2[i] * z2[i];
-      x4[i] = x2[i] * x2[i];
-      y4[i] = y2[i] * y2[i];
-      if (lMax > 5) {
-        r6[i] = r2[i] * r4[i];
-        z6[i] = z2[i] * z4[i];
-        x6[i] = x2[i] * x4[i];
-        y6[i] = y2[i] * y4[i];
-        if (lMax > 7) {
-          r8[i] = r4[i] * r4[i];
-          z8[i] = z4[i] * z4[i];
-          x8[i] = x4[i] * x4[i];
-          y8[i] = y4[i] * y4[i];
-          if (lMax > 9) {
-            x10[i] = x6[i] * x4[i];
-            y10[i] = y6[i] * y4[i];
-            z10[i] = z6[i] * z4[i];
-            r10[i] = r6[i] * r4[i];
-            if (lMax > 11) {
-              x12[i] = x6[i] * x6[i];
-              y12[i] = y6[i] * y6[i];
-              r12[i] = r6[i] * r6[i];
-              z12[i] = z6[i] * z6[i];
-              if (lMax > 13) {
-                x14[i] = x6[i] * x8[i];
-                y14[i] = y6[i] * y8[i];
-                r14[i] = r6[i] * r8[i];
-                z14[i] = z6[i] * z8[i];
-                if (lMax > 15) {
-                  x16[i] = x8[i] * x8[i];
-                  y16[i] = y8[i] * y8[i];
-                  r16[i] = r8[i] * r8[i];
-                  z16[i] = z8[i] * z8[i];
-                  if (lMax > 17) {
-                    x18[i] = x10[i] * x8[i];
-                    y18[i] = y10[i] * y8[i];
-                    r18[i] = r10[i] * r8[i];
-                    z18[i] = z10[i] * z8[i];
-                    if (lMax > 19) {
-                      x20[i] = x10[i] * x10[i];
-                      z20[i] = z10[i] * z10[i];
-                      y20[i] = y10[i] * y10[i];
-                      r20[i] = r10[i] * r10[i];
-                    }
+    // squared Values are calculated in getAllNeighboursInfoForPosition
+    // if (lMax > 3) {
+    r4[i] = r2[i] * r2[i];
+    z4[i] = z2[i] * z2[i];
+    x4[i] = x2[i] * x2[i];
+    y4[i] = y2[i] * y2[i];
+    if (lMax > 5) {
+      r6[i] = r2[i] * r4[i];
+      z6[i] = z2[i] * z4[i];
+      x6[i] = x2[i] * x4[i];
+      y6[i] = y2[i] * y4[i];
+      if (lMax > 7) {
+        r8[i] = r4[i] * r4[i];
+        z8[i] = z4[i] * z4[i];
+        x8[i] = x4[i] * x4[i];
+        y8[i] = y4[i] * y4[i];
+        if (lMax > 9) {
+          x10[i] = x6[i] * x4[i];
+          y10[i] = y6[i] * y4[i];
+          z10[i] = z6[i] * z4[i];
+          r10[i] = r6[i] * r4[i];
+          if (lMax > 11) {
+            x12[i] = x6[i] * x6[i];
+            y12[i] = y6[i] * y6[i];
+            r12[i] = r6[i] * r6[i];
+            z12[i] = z6[i] * z6[i];
+            if (lMax > 13) {
+              x14[i] = x6[i] * x8[i];
+              y14[i] = y6[i] * y8[i];
+              r14[i] = r6[i] * r8[i];
+              z14[i] = z6[i] * z8[i];
+              if (lMax > 15) {
+                x16[i] = x8[i] * x8[i];
+                y16[i] = y8[i] * y8[i];
+                r16[i] = r8[i] * r8[i];
+                z16[i] = z8[i] * z8[i];
+                if (lMax > 17) {
+                  x18[i] = x10[i] * x8[i];
+                  y18[i] = y10[i] * y8[i];
+                  r18[i] = r10[i] * r8[i];
+                  z18[i] = z10[i] * z8[i];
+                  if (lMax > 19) {
+                    x20[i] = x10[i] * x10[i];
+                    z20[i] = z10[i] * z10[i];
+                    y20[i] = y10[i] * y10[i];
+                    r20[i] = r10[i] * r10[i];
                   }
                 }
               }
@@ -116,6 +120,7 @@ inline void getRsZsD(const double * /*x*/, const double *x2, double *x4,
         }
       }
     }
+    //}
   }
 }
 /*================================================================*/
@@ -665,6 +670,7 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
 
       // Save the neighbour distances into the arrays dx, dy and dz
       // getDeltasD(dx, dy, dz, positions, ix, iy, iz, ZIndexPair.second);
+
       getRsZsD(dx, result.dxSquared.data(), Xpow[to4].data(), Xpow[to6].data(),
                Xpow[to8].data(), Xpow[to10].data(), Xpow[to12].data(),
                Xpow[to14].data(), Xpow[to16].data(), Xpow[to18].data(), dy,
@@ -679,6 +685,7 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
                Zpow[to12].data(), Zpow[to14].data(), Zpow[to16].data(),
                Zpow[to18].data(), Rpow[to20].data(), Xpow[to20].data(),
                Ypow[to20].data(), Zpow[to20].data(), n_neighbours, lMax);
+
       getWeights(n_neighbours, result.distances.data(),
                  result.distancesSquared.data(), true, weighting, weights);
       getCfactorsD(preCoef, prCofDX, prCofDY, prCofDZ, n_neighbours, dx,
