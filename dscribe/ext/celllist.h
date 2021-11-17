@@ -20,67 +20,93 @@ limitations under the License.
 #include <vector>
 
 namespace py = pybind11;
-using namespace std;
+using std::vector;
 
 struct CellListResult {
-    vector<int> indices;
-    vector<double> distances;
-    vector<double> distancesSquared;
+  vector<int> indices;
+  vector<double> distances;
+  vector<double> distancesSquared;
+};
+
+struct CellListResultComplete {
+  vector<int> indices;
+  vector<double> distances;
+  vector<double> distancesSquared;
+  vector<double> dx;
+  vector<double> dy;
+  vector<double> dz;
+  vector<double> dxSquared;
+  vector<double> dySquared;
+  vector<double> dzSquared;
 };
 
 /**
  * For calculating pairwise distances using a cell list.
  */
 class CellList {
-    public:
-        /**
-         * Constructor
-         *
-         * @param positions Atomic positions in cartesian coordinates.
-         * @param atomicNumbers Atomic numbers.
-         */
-        CellList(py::array_t<double> positions, double cutoff);
-        /**
-         * Get the indices of atoms within the radial cutoff distance from the
-         * given position.
-         *
-         * @param x Cartesian x-coordinate.
-         * @param y Cartesian y-coordinate.
-         * @param z Cartesian z-coordinate.
-         */
-        CellListResult getNeighboursForPosition(const double x, const double y, const double z) const;
-        /**
-         * Get the indices of atoms within the radial cutoff distance from the
-         * given atomic index. The given index is not included in the returned
-         * values.
-         *
-         * @param i Index of the atom for which neighbours are queried for.
-         */
-        CellListResult getNeighboursForIndex(const int i) const;
+public:
+  /**
+   * Constructor
+   *
+   * @param positions Atomic positions in cartesian coordinates.
+   * @param atomicNumbers Atomic numbers.
+   */
+  CellList(py::array_t<double> positions, double cutoff);
+  /**
+   * Get the indices of atoms within the radial cutoff distance from the
+   * given position.
+   *
+   * @param x Cartesian x-coordinate.
+   * @param y Cartesian y-coordinate.
+   * @param z Cartesian z-coordinate.
+   */
+  CellListResult getNeighboursForPosition(const double x, const double y,
+                                          const double z) const;
+  /**
+   * Get the indices of atoms within the radial cutoff distance from the
+   * given position.
+   * Gets also the distances (total and on each coordinate) and the squared
+   * value of that
+   *
+   * @param x Cartesian x-coordinate.
+   * @param y Cartesian y-coordinate.
+   * @param z Cartesian z-coordinate.
+   */
+  CellListResultComplete getAllNeighboursInfoForPosition(const double x,
+                                                         const double y,
+                                                         const double z) const;
+  /**
+   * Get the indices of atoms within the radial cutoff distance from the
+   * given atomic index. The given index is not included in the returned
+   * values.
+   *
+   * @param i Index of the atom for which neighbours are queried for.
+   */
+  CellListResult getNeighboursForIndex(const int i) const;
 
-    private:
-        /**
-         * Used to initialize the cell list. Querying for distances is only
-         * possible after this initialization.
-         */
-        void init();
+private:
+  /**
+   * Used to initialize the cell list. Querying for distances is only
+   * possible after this initialization.
+   */
+  void init();
 
-        const py::detail::unchecked_reference<double, 2> positions;
-        const double cutoff;
-        const double cutoffSquared;
-        double xmin;
-        double xmax;
-        double ymin;
-        double ymax;
-        double zmin;
-        double zmax;
-        double dx;
-        double dy;
-        double dz;
-        int nx;
-        int ny;
-        int nz;
-        vector<vector<vector<vector<int>>>> bins;
+  const py::detail::unchecked_reference<double, 2> positions;
+  const double cutoff;
+  const double cutoffSquared;
+  double xmin;
+  double xmax;
+  double ymin;
+  double ymax;
+  double zmin;
+  double zmax;
+  double dx;
+  double dy;
+  double dz;
+  int nx;
+  int ny;
+  int nz;
+  vector<vector<vector<vector<int>>>> bins;
 };
 
 #endif
