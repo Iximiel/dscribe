@@ -156,10 +156,11 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
            py::detail::unchecked_mutable_reference<double, 4> &C_mu,
            const double *preCoef, const double *x, const double *y,
            const double *z, const double *r2, const double *weights,
-           const double *bOa, const double *aOa, const double *exes,
-           const int totalAN, const int Asize, const int Ns, const int Ntypes,
-           const int lMax, const int posI, const int typeJ,
-           const vector<int> &indices, const bool return_derivatives) {
+           const double *bOa, const double *aOa, const double * /*exes*/,
+           const int totalAN, const int Asize, const int Ns,
+           const int /*Ntypes*/, const int lMax, const int posI,
+           const int typeJ, const vector<int> &indices,
+           const bool return_derivatives) {
   if (Asize == 0) {
     return;
   }
