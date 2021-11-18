@@ -72,42 +72,42 @@ getRsZsD(const double * /*x*/, const double *x2, double *x4, double *x6,
     z4[i] = z2[i] * z2[i];
     x4[i] = x2[i] * x2[i];
     y4[i] = y2[i] * y2[i];
-    if (lMax > 5) {
+    if (5 < lMax) { // if (lMax > 5) {
       r6[i] = r2[i] * r4[i];
       z6[i] = z2[i] * z4[i];
       x6[i] = x2[i] * x4[i];
       y6[i] = y2[i] * y4[i];
-      if (lMax > 7) {
+      if (7 < lMax) { // if (lMax > 7) {
         r8[i] = r4[i] * r4[i];
         z8[i] = z4[i] * z4[i];
         x8[i] = x4[i] * x4[i];
         y8[i] = y4[i] * y4[i];
-        if (lMax > 9) {
+        if (9 < lMax) { // if (lMax > 9) {
           x10[i] = x6[i] * x4[i];
           y10[i] = y6[i] * y4[i];
           z10[i] = z6[i] * z4[i];
           r10[i] = r6[i] * r4[i];
-          if (lMax > 11) {
+          if (11 < lMax) { // if (lMax > 11) {
             x12[i] = x6[i] * x6[i];
             y12[i] = y6[i] * y6[i];
             r12[i] = r6[i] * r6[i];
             z12[i] = z6[i] * z6[i];
-            if (lMax > 13) {
+            if (13 < lMax) { // if (lMax > 13) {
               x14[i] = x6[i] * x8[i];
               y14[i] = y6[i] * y8[i];
               r14[i] = r6[i] * r8[i];
               z14[i] = z6[i] * z8[i];
-              if (lMax > 15) {
+              if (15 < lMax) { // if (lMax > 15) {
                 x16[i] = x8[i] * x8[i];
                 y16[i] = y8[i] * y8[i];
                 r16[i] = r8[i] * r8[i];
                 z16[i] = z8[i] * z8[i];
-                if (lMax > 17) {
+                if (17 < lMax) { // if (lMax > 17) {
                   x18[i] = x10[i] * x8[i];
                   y18[i] = y10[i] * y8[i];
                   r18[i] = r10[i] * r8[i];
                   z18[i] = z10[i] * z8[i];
-                  if (lMax > 19) {
+                  if (19 < lMax) { // if (lMax > 19) {
                     x20[i] = x10[i] * x10[i];
                     z20[i] = z10[i] * z10[i];
                     y20[i] = y10[i] * y10[i];
@@ -518,21 +518,20 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
              const bool return_descriptor, const bool return_derivatives,
              CellList cell_list_atoms) {
   // constants
-  int totalAN = atomicNumbersArr.shape(0);
-  int nCenters = centers.shape(0);
-  auto atomicNumbers = atomicNumbersArr.unchecked<1>();
-  auto species = orderedSpeciesArr.unchecked<1>();
-  int nSpecies = orderedSpeciesArr.shape(0);
-  auto indices_u = indices.unchecked<1>();
-  double oOeta = 1.0 / eta;
-  double oOeta3O2 = sqrt(oOeta * oOeta * oOeta);
-  int nMax2 = nMax * nMax;
-  auto centers_u = centers.unchecked<2>();
-  auto positions_u = positions.unchecked<2>();
-  int nFeatures =
+  const int totalAN = atomicNumbersArr.shape(0);
+  const auto atomicNumbers = atomicNumbersArr.unchecked<1>();
+
+  const auto indices_u = indices.unchecked<1>();
+  const double oOeta = 1.0 / eta;
+  const double oOeta3O2 = sqrt(oOeta * oOeta * oOeta);
+  const int nMax2 = nMax * nMax;
+  const auto positions_u = positions.unchecked<2>();
+  const int lMaxP1Squared = (lMax + 1) * (lMax + 1);
+
+  const int nSpecies = orderedSpeciesArr.shape(0);
+  const int nFeatures =
       crossover ? (nSpecies * nMax) * (nSpecies * nMax + 1) / 2 * (lMax + 1)
                 : nSpecies * (lMax + 1) * ((nMax + 1) * nMax) / 2;
-  int n_coeffs = nSpecies * nMax * (lMax + 1) * (lMax + 1);
 
   auto derivatives_mu = derivatives.mutable_unchecked<4>();
   double *alphas = static_cast<double *>(alphasArr.request().ptr);
@@ -540,7 +539,7 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   double *weights = new double[totalAN];
   double *exes = new double[totalAN];
   // -4 -> no need for l=0, l=1.
-  const unsigned baseNofParameters = (lMax + 1) * (lMax + 1) - 4;
+  const unsigned baseNofParameters = lMaxP1Squared - 4;
   double *preCoef = new double[baseNofParameters * totalAN];
   double *prCofDX =
       (return_derivatives) ? new double[baseNofParameters * totalAN] : nullptr;
@@ -556,9 +555,10 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
 
   // Initialize temporary numpy array for storing the coefficients and the
   // averaged coefficients if inner averaging was requested.
+  const int nCenters = centers.shape(0);
+  const int n_coeffs = nSpecies * nMax * lMaxP1Squared;
   double *cnnd_raw = new double[nCenters * n_coeffs]();
-  py::array_t<double> cnnd({nCenters, nSpecies, nMax, (lMax + 1) * (lMax + 1)},
-                           cnnd_raw);
+  py::array_t<double> cnnd({nCenters, nSpecies, nMax, lMaxP1Squared}, cnnd_raw);
 
   auto cnnd_u = cnnd.unchecked<4>();
   auto cdevX_u = cdevX.unchecked<5>();
@@ -580,20 +580,22 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
     std::vector<unsigned> atomList;
   };
   map<int, int> ZIndexMap;
-  for (int i = 0; i < species.size(); ++i) {
+  const auto species = orderedSpeciesArr.unchecked<1>();
+  for (int i = 0; i < nSpecies; ++i) {
     ZIndexMap[species(i)] = i;
   }
-
+  const auto centers_u = centers.unchecked<2>();
   // Loop through the centers
   for (int i = 0; i < nCenters; ++i) {
 
     // Get all neighbouring atoms for the center i
-    double ix = centers_u(i, 0);
-    double iy = centers_u(i, 1);
-    double iz = centers_u(i, 2);
-    auto result = cell_list_atoms.getAllNeighboursInfoForPosition(ix, iy, iz);
+    const double ix = centers_u(i, 0);
+    const double iy = centers_u(i, 1);
+    const double iz = centers_u(i, 2);
+    const auto result =
+        cell_list_atoms.getAllNeighboursInfoForPosition(ix, iy, iz);
 
-    // Sort the neighbours by type
+    // Accumulate the neighbours by type
     map<int, vector<int>> atomicTypeMap;
     for (const int &idx : result.indices) {
       int Z = atomicNumbers(idx);
@@ -602,9 +604,9 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
 
     // temporary arrays to store distances
     // sugars
-    double *dx = result.dx.data(); // new double[totalAN];
-    double *dy = result.dy.data(); // new double[totalAN];
-    double *dz = result.dz.data(); // new double[totalAN];
+    auto *dx = result.dx.data(); // new double[totalAN];
+    auto *dy = result.dy.data(); // new double[totalAN];
+    auto *dz = result.dz.data(); // new double[totalAN];
     // arrays
 
     constexpr int to4 = 0;
@@ -686,8 +688,7 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
                Zpow[to18].data(), Rpow[to20].data(), Xpow[to20].data(),
                Ypow[to20].data(), Zpow[to20].data(), n_neighbours, lMax);
 
-      getWeights(n_neighbours, result.distances.data(),
-                 result.distancesSquared.data(), true, weighting, weights);
+      getWeights(n_neighbours, result.distances.data(), weighting, weights);
       getCfactorsD(preCoef, prCofDX, prCofDY, prCofDZ, n_neighbours, dx,
                    result.dxSquared.data(), Xpow[to4].data(), Xpow[to6].data(),
                    Xpow[to8].data(), Xpow[to10].data(), Xpow[to12].data(),
@@ -729,15 +730,15 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
     // centers (axis 0) before calculating the power spectrum.
     if (average == "inner") {
       double *cnnd_ave_raw = new double[n_coeffs]();
-      py::array_t<double> cnnd_ave = py::array_t<double>(
-          {1, nSpecies, nMax, (lMax + 1) * (lMax + 1)}, cnnd_ave_raw);
+      py::array_t<double> cnnd_ave =
+          py::array_t<double>({1, nSpecies, nMax, lMaxP1Squared}, cnnd_ave_raw);
 
       auto cnnd_ave_mu = cnnd_ave.mutable_unchecked<4>();
       auto cnnd_ave_u = cnnd_ave.unchecked<4>();
 
       for (int j = 0; j < nSpecies; ++j) {
         for (int k = 0; k < nMax; ++k) {
-          for (int l = 0; l < (lMax + 1) * (lMax + 1); ++l) {
+          for (int l = 0; l < lMaxP1Squared; ++l) {
             for (int i = 0; i < nCenters; ++i) {
               cnnd_ave_mu(0, j, k, l) += cnnd_u(i, j, k, l);
             }
