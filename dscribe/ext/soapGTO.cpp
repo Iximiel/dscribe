@@ -237,26 +237,10 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
     double sumMe2;
     double sumMe3;
 
-    double preVal1;
-    double preVal2;
-    double preVal3;
-
-    double preValX1;
-    double preValY1;
-    double preValZ1;
-
-    double preValX2;
-    double preValY2;
-    double preValZ2;
-
-    double preValX3;
-    double preValY3;
-    double preValZ3;
-
     for (int k = 0; k < Ns; ++k) {
-      sumMe1 = 0;
-      sumMe2 = 0;
-      sumMe3 = 0;
+      sumMe1 = 0.0;
+      sumMe2 = 0.0;
+      sumMe3 = 0.0;
       for (int i = 0; i < Asize; ++i) {
         preExp = preExponentArray[shift];
         sumMe1 += preExp * z[i];
@@ -272,6 +256,21 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
     }
 
     if (return_derivatives) {
+      double preVal1;
+      double preVal2;
+      double preVal3;
+
+      double preValX1;
+      double preValY1;
+      double preValZ1;
+
+      double preValX2;
+      double preValY2;
+      double preValZ2;
+
+      double preValX3;
+      double preValY3;
+      double preValZ3;
       shift = 0;
       for (int k = 0; k < Ns; ++k) {
         for (int i = 0; i < Asize; ++i) {
@@ -330,26 +329,24 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
       for (int restOfLs = 2; restOfLs <= lMax; ++restOfLs) {
         LNsNs = restOfLs * NsNs;
         LNs = restOfLs * Ns;
+        const int restOfLsSquared = restOfLs * restOfLs;
+        const int restOfLsP1Squared = (restOfLs + 1) * (restOfLs + 1);
         shift = 0;
         for (int k = 0; k < Ns; ++k) {
           for (int i = 0; i < Asize; ++i) {
-            double expSholder = aOa[LNs + k] * r2[i];
-            preExponentArray[shift] = weights[i] * exp(expSholder);
+            preExponentArray[shift] = weights[i] * exp(aOa[LNs + k] * r2[i]);
             ++shift;
           }
         }
 
-        // double*  sumS = (double*)
-        // malloc(sizeof(double)*(restOfLs+1)*(restOfLs+1))
-        shift = 0;
+        // shift = 0;
         for (int k = 0; k < Ns; ++k) {
-          for (int m = restOfLs * restOfLs; m < (restOfLs + 1) * (restOfLs + 1);
-               m++) {
+          for (int m = restOfLsSquared; m < restOfLsP1Squared; m++) {
             sumMe = 0.0;
             for (int i = 0; i < Asize; ++i) {
-              preExp = preExponentArray[Asize * k + i];
-              sumMe += preExp * preCoef[totalAN * (m - 4) + i];
-              ++shift;
+              sumMe += preExponentArray[Asize * k + i] *
+                       preCoef[totalAN * (m - 4) + i];
+              //++shift;
             }
             for (int n = 0; n < Ns; ++n) {
               C_mu(posI, typeJ, n, m) += bOa[LNsNs + n * Ns + k] * sumMe;
@@ -363,8 +360,7 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
             for (int i = 0; i < Asize; ++i) {
               preExp = preExponentArray[shift];
               ++shift;
-              for (int m = restOfLs * restOfLs;
-                   m < (restOfLs + 1) * (restOfLs + 1); ++m) {
+              for (int m = restOfLsSquared; m < restOfLsP1Squared; ++m) {
                 preVal = 2.0 * aOa[LNs + k] * preExp *
                          preCoef[totalAN * (m - 4) + i];
                 preValX =
@@ -505,6 +501,21 @@ void getPDev(py::detail::unchecked_mutable_reference<double, 4> &derivatives_mu,
     }
   }
 }
+
+/// Create th
+std::array<std::vector<double>, 9> createWorkArrays(const unsigned totalAN,
+                                                    const unsigned lMax) {
+  return std::array<std::vector<double>, 9>{
+      std::vector<double>((lMax > 3) ? totalAN : 0),   // x4
+      std::vector<double>((lMax > 5) ? totalAN : 0),   // x6
+      std::vector<double>((lMax > 7) ? totalAN : 0),   // x8
+      std::vector<double>((lMax > 9) ? totalAN : 0),   // x10
+      std::vector<double>((lMax > 11) ? totalAN : 0),  // x12
+      std::vector<double>((lMax > 13) ? totalAN : 0),  // x14
+      std::vector<double>((lMax > 15) ? totalAN : 0),  // x16
+      std::vector<double>((lMax > 17) ? totalAN : 0),  // x18
+      std::vector<double>((lMax > 19) ? totalAN : 0)}; // x20
+}
 /*=================================================================================================================================================================*/
 void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
              py::array_t<double> cdevX, py::array_t<double> cdevY,
@@ -584,29 +595,8 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
   for (int i = 0; i < nSpecies; ++i) {
     ZIndexMap[species(i)] = i;
   }
-  const auto centers_u = centers.unchecked<2>();
-  // Loop through the centers
-  for (int i = 0; i < nCenters; ++i) {
-
-    // Get all neighbouring atoms for the center i
-    const double ix = centers_u(i, 0);
-    const double iy = centers_u(i, 1);
-    const double iz = centers_u(i, 2);
-    const auto result =
-        cell_list_atoms.getAllNeighboursInfoForPosition(ix, iy, iz);
-
-    // Accumulate the neighbours by type
-    map<int, vector<int>> atomicTypeMap;
-    for (const int &idx : result.indices) {
-      int Z = atomicNumbers(idx);
-      atomicTypeMap[Z].push_back(idx);
-    };
-
-    // temporary arrays to store distances
-    // sugars
-    auto *dx = result.dx.data(); // new double[totalAN];
-    auto *dy = result.dy.data(); // new double[totalAN];
-    auto *dz = result.dz.data(); // new double[totalAN];
+  {
+    // working arrays
     // arrays
 
     constexpr int to4 = 0;
@@ -621,107 +611,92 @@ void soapGTO(py::array_t<double> derivatives, py::array_t<double> descriptor,
     // vectors and array can be used to not think about memory
     // the .data() function will be used to pass the raw pointer to the data
     // functions
-    std::array<std::vector<double>, 9> Xpow = {
-        std::vector<double>((lMax > 3) ? totalAN : 0),   // x4
-        std::vector<double>((lMax > 5) ? totalAN : 0),   // x6
-        std::vector<double>((lMax > 7) ? totalAN : 0),   // x8
-        std::vector<double>((lMax > 9) ? totalAN : 0),   // x10
-        std::vector<double>((lMax > 11) ? totalAN : 0),  // x12
-        std::vector<double>((lMax > 13) ? totalAN : 0),  // x14
-        std::vector<double>((lMax > 15) ? totalAN : 0),  // x16
-        std::vector<double>((lMax > 17) ? totalAN : 0),  // x18
-        std::vector<double>((lMax > 19) ? totalAN : 0)}; // x20
-    std::array<std::vector<double>, 9> Ypow = {
-        std::vector<double>((lMax > 3) ? totalAN : 0),   // y4
-        std::vector<double>((lMax > 5) ? totalAN : 0),   // y6
-        std::vector<double>((lMax > 7) ? totalAN : 0),   // y8
-        std::vector<double>((lMax > 9) ? totalAN : 0),   // y10
-        std::vector<double>((lMax > 11) ? totalAN : 0),  // y12
-        std::vector<double>((lMax > 13) ? totalAN : 0),  // y14
-        std::vector<double>((lMax > 15) ? totalAN : 0),  // y16
-        std::vector<double>((lMax > 17) ? totalAN : 0),  // y18
-        std::vector<double>((lMax > 19) ? totalAN : 0)}; // y20
-    std::array<std::vector<double>, 9> Zpow = {
-        std::vector<double>((lMax > 3) ? totalAN : 0),   // z4
-        std::vector<double>((lMax > 5) ? totalAN : 0),   // z6
-        std::vector<double>((lMax > 7) ? totalAN : 0),   // z8
-        std::vector<double>((lMax > 9) ? totalAN : 0),   // z10
-        std::vector<double>((lMax > 11) ? totalAN : 0),  // z12
-        std::vector<double>((lMax > 13) ? totalAN : 0),  // z14
-        std::vector<double>((lMax > 15) ? totalAN : 0),  // z16
-        std::vector<double>((lMax > 17) ? totalAN : 0),  // z18
-        std::vector<double>((lMax > 19) ? totalAN : 0)}; // z20
+    auto Xpow = createWorkArrays(totalAN, lMax);
+    auto Ypow = createWorkArrays(totalAN, lMax);
+    auto Zpow = createWorkArrays(totalAN, lMax);
+    auto Rpow = createWorkArrays(totalAN, lMax);
+    const auto centers_u = centers.unchecked<2>();
+    // Loop through the centers
+    for (int i = 0; i < nCenters; ++i) {
 
-    std::array<std::vector<double>, 9> Rpow = {
-        std::vector<double>((lMax > 3) ? totalAN : 0),   // r4
-        std::vector<double>((lMax > 5) ? totalAN : 0),   // r6
-        std::vector<double>((lMax > 7) ? totalAN : 0),   // r8
-        std::vector<double>((lMax > 9) ? totalAN : 0),   // r10
-        std::vector<double>((lMax > 11) ? totalAN : 0),  // r12
-        std::vector<double>((lMax > 13) ? totalAN : 0),  // r14
-        std::vector<double>((lMax > 15) ? totalAN : 0),  // r16
-        std::vector<double>((lMax > 17) ? totalAN : 0),  // r18
-        std::vector<double>((lMax > 19) ? totalAN : 0)}; // r20
+      // Get all neighbouring atoms for the center i
+      const double ix = centers_u(i, 0);
+      const double iy = centers_u(i, 1);
+      const double iz = centers_u(i, 2);
+      const auto result =
+          cell_list_atoms.getAllNeighboursInfoForPosition(ix, iy, iz);
 
-    // Loop through neighbours sorted by type
-    for (const auto &ZIndexPair : atomicTypeMap) {
+      // Accumulate the neighbours by type
+      map<int, vector<int>> atomicTypeMap;
+      for (const int &idx : result.indices) {
+        atomicTypeMap[atomicNumbers(idx)].push_back(idx);
+      };
 
-      // j is the internal index for this atomic number
-      int j = ZIndexMap[ZIndexPair.first];
-      int n_neighbours = ZIndexPair.second.size();
+      // temporary arrays to store distances
+      // sugars
+      auto *dx = result.dx.data(); // new double[totalAN];
+      auto *dy = result.dy.data(); // new double[totalAN];
+      auto *dz = result.dz.data(); // new double[totalAN];
+      // Loop through neighbours sorted by type
+      for (const auto &ZIndexPair : atomicTypeMap) {
 
-      // Save the neighbour distances into the arrays dx, dy and dz
-      // getDeltasD(dx, dy, dz, positions, ix, iy, iz, ZIndexPair.second);
+        // j is the internal index for this atomic number
+        int j = ZIndexMap[ZIndexPair.first];
+        int n_neighbours = ZIndexPair.second.size();
 
-      getRsZsD(dx, result.dxSquared.data(), Xpow[to4].data(), Xpow[to6].data(),
-               Xpow[to8].data(), Xpow[to10].data(), Xpow[to12].data(),
-               Xpow[to14].data(), Xpow[to16].data(), Xpow[to18].data(), dy,
-               result.dySquared.data(), Ypow[to4].data(), Ypow[to6].data(),
-               Ypow[to8].data(), Ypow[to10].data(), Ypow[to12].data(),
-               Ypow[to14].data(), Ypow[to16].data(), Ypow[to18].data(), dz,
-               result.distancesSquared.data(), Rpow[to4].data(),
-               Rpow[to6].data(), Rpow[to8].data(), Rpow[to10].data(),
-               Rpow[to12].data(), Rpow[to14].data(), Rpow[to16].data(),
-               Rpow[to18].data(), result.dzSquared.data(), Zpow[to4].data(),
-               Zpow[to6].data(), Zpow[to8].data(), Zpow[to10].data(),
-               Zpow[to12].data(), Zpow[to14].data(), Zpow[to16].data(),
-               Zpow[to18].data(), Rpow[to20].data(), Xpow[to20].data(),
-               Ypow[to20].data(), Zpow[to20].data(), n_neighbours, lMax);
+        // Save the neighbour distances into the arrays dx, dy and dz
+        // getDeltasD(dx, dy, dz, positions, ix, iy, iz, ZIndexPair.second);
 
-      getWeights(n_neighbours, result.distances.data(), weighting, weights);
-      getCfactorsD(preCoef, prCofDX, prCofDY, prCofDZ, n_neighbours, dx,
-                   result.dxSquared.data(), Xpow[to4].data(), Xpow[to6].data(),
-                   Xpow[to8].data(), Xpow[to10].data(), Xpow[to12].data(),
-                   Xpow[to14].data(), Xpow[to16].data(), Xpow[to18].data(), dy,
-                   result.dySquared.data(), Ypow[to4].data(), Ypow[to6].data(),
-                   Ypow[to8].data(), Ypow[to10].data(), Ypow[to12].data(),
-                   Ypow[to14].data(), Ypow[to16].data(), Ypow[to18].data(), dz,
-                   result.dzSquared.data(), Zpow[to4].data(), Zpow[to6].data(),
-                   Zpow[to8].data(), Zpow[to10].data(), Zpow[to12].data(),
-                   Zpow[to14].data(), Zpow[to16].data(), Zpow[to18].data(),
-                   result.distancesSquared.data(), Rpow[to4].data(),
-                   Rpow[to6].data(), Rpow[to8].data(), Rpow[to10].data(),
-                   Rpow[to12].data(), Rpow[to14].data(), Rpow[to16].data(),
-                   Rpow[to18].data(), Rpow[to20].data(), Xpow[to20].data(),
-                   Ypow[to20].data(), Zpow[to20].data(), totalAN, lMax,
-                   return_derivatives);
-      getCD(cdevX_mu, cdevY_mu, cdevZ_mu, prCofDX, prCofDY, prCofDZ, cnnd_mu,
-            preCoef, dx, dy, dz, result.distancesSquared.data(), weights, bOa,
-            aOa, exes, totalAN, n_neighbours, nMax, nSpecies, lMax, i, j,
-            ZIndexPair.second, return_derivatives);
+        getRsZsD(dx, result.dxSquared.data(), Xpow[to4].data(),
+                 Xpow[to6].data(), Xpow[to8].data(), Xpow[to10].data(),
+                 Xpow[to12].data(), Xpow[to14].data(), Xpow[to16].data(),
+                 Xpow[to18].data(), dy, result.dySquared.data(),
+                 Ypow[to4].data(), Ypow[to6].data(), Ypow[to8].data(),
+                 Ypow[to10].data(), Ypow[to12].data(), Ypow[to14].data(),
+                 Ypow[to16].data(), Ypow[to18].data(), dz,
+                 result.distancesSquared.data(), Rpow[to4].data(),
+                 Rpow[to6].data(), Rpow[to8].data(), Rpow[to10].data(),
+                 Rpow[to12].data(), Rpow[to14].data(), Rpow[to16].data(),
+                 Rpow[to18].data(), result.dzSquared.data(), Zpow[to4].data(),
+                 Zpow[to6].data(), Zpow[to8].data(), Zpow[to10].data(),
+                 Zpow[to12].data(), Zpow[to14].data(), Zpow[to16].data(),
+                 Zpow[to18].data(), Rpow[to20].data(), Xpow[to20].data(),
+                 Ypow[to20].data(), Zpow[to20].data(), n_neighbours, lMax);
+
+        getWeights(n_neighbours, result.distances.data(), weighting, weights);
+        getCfactorsD(
+            preCoef, prCofDX, prCofDY, prCofDZ, n_neighbours, dx,
+            result.dxSquared.data(), Xpow[to4].data(), Xpow[to6].data(),
+            Xpow[to8].data(), Xpow[to10].data(), Xpow[to12].data(),
+            Xpow[to14].data(), Xpow[to16].data(), Xpow[to18].data(), dy,
+            result.dySquared.data(), Ypow[to4].data(), Ypow[to6].data(),
+            Ypow[to8].data(), Ypow[to10].data(), Ypow[to12].data(),
+            Ypow[to14].data(), Ypow[to16].data(), Ypow[to18].data(), dz,
+            result.dzSquared.data(), Zpow[to4].data(), Zpow[to6].data(),
+            Zpow[to8].data(), Zpow[to10].data(), Zpow[to12].data(),
+            Zpow[to14].data(), Zpow[to16].data(), Zpow[to18].data(),
+            result.distancesSquared.data(), Rpow[to4].data(), Rpow[to6].data(),
+            Rpow[to8].data(), Rpow[to10].data(), Rpow[to12].data(),
+            Rpow[to14].data(), Rpow[to16].data(), Rpow[to18].data(),
+            Rpow[to20].data(), Xpow[to20].data(), Ypow[to20].data(),
+            Zpow[to20].data(), totalAN, lMax, return_derivatives);
+        getCD(cdevX_mu, cdevY_mu, cdevZ_mu, prCofDX, prCofDY, prCofDZ, cnnd_mu,
+              preCoef, dx, dy, dz, result.distancesSquared.data(), weights, bOa,
+              aOa, exes, totalAN, n_neighbours, nMax, nSpecies, lMax, i, j,
+              ZIndexPair.second, return_derivatives);
+      }
+
+      // delete[] dx;
+      // delete[] dy;
+      // delete[] dz;
     }
-
-    // delete[] dx;
-    // delete[] dy;
-    // delete[] dz;
+    delete[] exes;
+    delete[] preCoef;
+    delete[] bOa;
+    delete[] aOa;
+    delete[] cnnd_raw;
+    delete[] weights;
   }
-  delete[] exes;
-  delete[] preCoef;
-  delete[] bOa;
-  delete[] aOa;
-  delete[] cnnd_raw;
-  delete[] weights;
-
   // Calculate the descriptor value if requested
   if (return_descriptor) {
     auto descriptor_mu = descriptor.mutable_unchecked<2>();

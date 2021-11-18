@@ -149,6 +149,16 @@ CellList::getAllNeighboursInfoForPosition(const double x, const double y,
                                           const double z) const {
   // The indices of the neighbouring atoms
   CellListResultComplete toreturn;
+  constexpr size_t reserveGuess = 100;
+  toreturn.indices.reserve(reserveGuess);
+  toreturn.distancesSquared.reserve(reserveGuess);
+  toreturn.distances.reserve(reserveGuess);
+  toreturn.dx.reserve(reserveGuess);
+  toreturn.dy.reserve(reserveGuess);
+  toreturn.dz.reserve(reserveGuess);
+  toreturn.dxSquared.reserve(reserveGuess);
+  toreturn.dySquared.reserve(reserveGuess);
+  toreturn.dzSquared.reserve(reserveGuess);
   // Find bin for the given position
   int i0 = (x - this->xmin) / this->dx;
   int j0 = (y - this->ymin) / this->dy;
@@ -175,15 +185,15 @@ CellList::getAllNeighboursInfoForPosition(const double x, const double y,
           double distanceSquared =
               deltax * deltax + deltay * deltay + deltaz * deltaz;
           if (distanceSquared <= this->cutoffSquared) {
-            toreturn.indices.push_back(idx);
-            toreturn.distancesSquared.push_back(distanceSquared);
-            toreturn.distances.push_back(sqrt(distanceSquared));
-            toreturn.dx.push_back(deltax);
-            toreturn.dy.push_back(deltay);
-            toreturn.dz.push_back(deltaz);
-            toreturn.dxSquared.push_back(deltax * deltax);
-            toreturn.dySquared.push_back(deltay * deltay);
-            toreturn.dzSquared.push_back(deltaz * deltaz);
+            toreturn.indices.emplace_back(idx);
+            toreturn.distancesSquared.emplace_back(distanceSquared);
+            toreturn.distances.emplace_back(sqrt(distanceSquared));
+            toreturn.dx.emplace_back(deltax);
+            toreturn.dy.emplace_back(deltay);
+            toreturn.dz.emplace_back(deltaz);
+            toreturn.dxSquared.emplace_back(deltax * deltax);
+            toreturn.dySquared.emplace_back(deltay * deltay);
+            toreturn.dzSquared.emplace_back(deltaz * deltaz);
           }
         }
       }
