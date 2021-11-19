@@ -166,17 +166,15 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
   }
 
   double *preExponentArray = new double[Ns * Asize];
-  // l=0-------------------------------------------------------------------------------------------------
-
+  // l=0------------------------------------------------------------------------
   double sumMe = 0.0;
-  double preExp;
+
   int shift = 0;
   for (int k = 0; k < Ns; ++k) {
     sumMe = 0.0;
     for (int i = 0; i < Asize; ++i) {
       sumMe += preExponentArray[shift] =
           weights[i] * 1.5707963267948966 * exp(aOa[k] * r2[i]);
-      ;
       ++shift;
     }
     for (int n = 0; n < Ns; ++n) {
@@ -193,9 +191,9 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
   if (return_derivatives) {
     for (int k = 0; k < Ns; ++k) {
       for (int i = 0; i < Asize; ++i) {
-        preExp = preExponentArray[shift];
+        /*preExp = */
+        preVal = 2.0 * aOa[k] * preExponentArray[shift];
         ++shift;
-        preVal = 2.0 * aOa[k] * preExp;
         preValX = preVal * x[i];
         preValY = preVal * y[i];
         preValZ = preVal * z[i];
@@ -209,21 +207,22 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
   }
   // l=1-------------------------------------------------------------------------------------------------
   if (lMax > 0) {
+    double preExp;
     int NsNs = Ns * Ns;
     // int NsJ = ((lMax + 1) * (lMax + 1)) * Ns * typeJ;
     int LNsNs = NsNs;
     int LNs = Ns;
+    /*
+        shift = 0;
 
-    shift = 0;
-
-    for (int k = 0; k < Ns; ++k) {
-      for (int i = 0; i < Asize; ++i) {
-        preExponentArray[shift] =
-            weights[i] * 2.7206990463849543 * exp(aOa[LNs + k] * r2[i]);
-        ++shift;
-      }
-    }
-
+        for (int k = 0; k < Ns; ++k) {
+          for (int i = 0; i < Asize; ++i) {
+            preExponentArray[shift] =
+                weights[i] * 2.7206990463849543 * exp(aOa[LNs + k] * r2[i]);
+            ++shift;
+          }
+        }
+    */
     shift = 0;
     double sumMe1;
     double sumMe2;
@@ -234,10 +233,11 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
       sumMe2 = 0.0;
       sumMe3 = 0.0;
       for (int i = 0; i < Asize; ++i) {
-        preExp = preExponentArray[shift];
-        sumMe1 += preExp * z[i];
-        sumMe2 += preExp * x[i];
-        sumMe3 += preExp * y[i];
+        preExponentArray[shift] =
+            weights[i] * 2.7206990463849543 * exp(aOa[LNs + k] * r2[i]);
+        sumMe1 += preExponentArray[shift] * z[i];
+        sumMe2 += preExponentArray[shift] * x[i];
+        sumMe3 += preExponentArray[shift] * y[i];
         ++shift;
       }
       for (int n = 0; n < Ns; ++n) {
@@ -324,24 +324,31 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
         const int restOfLsSquared = restOfLs * restOfLs;
         const int restOfLsP1Squared = (restOfLs + 1) * (restOfLs + 1);
         shift = 0;
-        for (int k = 0; k < Ns; ++k) {
+        for (int k = LNs; k < LNs + Ns; ++k) {
           for (int i = 0; i < Asize; ++i) {
-            preExponentArray[shift] = weights[i] * exp(aOa[LNs + k] * r2[i]);
+            preExponentArray[shift] = weights[i] * exp(aOa[k] * r2[i]);
             ++shift;
           }
         }
 
         // shift = 0;
+        int AmulK;
+        int ANmulMm4;
         for (int k = 0; k < Ns; ++k) {
-          for (int m = restOfLsSquared; m < restOfLsP1Squared; m++) {
-            sumMe = 0.0;
-            for (int i = 0; i < Asize; ++i) {
-              sumMe += preExponentArray[Asize * k + i] *
-                       preCoef[totalAN * (m - 4) + i];
+          // AmulK = Asize * k;
+          int upperLimit = Asize * k + Asize;
+          for (int m = restOfLsSquared; m < restOfLsP1Squared; ++m) {
+            ANmulMm4 = totalAN * (m - 4);
+            AmulK = Asize * k;
+            sumMe = 0.0; // preExponentArray[AmulK] * preCoef[ANmulMm4];
+            for (; AmulK < upperLimit; ++AmulK, ++ANmulMm4) {
+              // sumMe += preExponentArray[AmulK + i] * preCoef[ANmulMm4 + i];
+              sumMe += preExponentArray[AmulK] * preCoef[ANmulMm4];
               //++shift;
             }
+            AmulK = LNsNs + k;
             for (int n = 0; n < Ns; ++n) {
-              C_mu(posI, typeJ, n, m) += bOa[LNsNs + n * Ns + k] * sumMe;
+              C_mu(posI, typeJ, n, m) += bOa[AmulK + n * Ns] * sumMe;
             }
           }
         }
