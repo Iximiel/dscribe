@@ -149,7 +149,6 @@ void getAlphaBetaD(double *aOa, double *bOa, const double *alphas,
   }
 }
 /*================================================================*/
-/*==============================================================================================================================*/
 void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
            py::detail::unchecked_mutable_reference<double, 5> &CDevY_mu,
            py::detail::unchecked_mutable_reference<double, 5> &CDevZ_mu,
