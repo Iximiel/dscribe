@@ -168,23 +168,16 @@ void getCD(py::detail::unchecked_mutable_reference<double, 5> &CDevX_mu,
 
   double *preExponentArray = new double[Ns * Asize];
   // l=0-------------------------------------------------------------------------------------------------
-  int shift = 0;
-  for (int k = 0; k < Ns; ++k) {
-    for (int i = 0; i < Asize; ++i) {
-      preExponentArray[shift] =
-          weights[i] * 1.5707963267948966 * exp(aOa[k] * r2[i]);
-      ++shift;
-    }
-  }
+
   double sumMe = 0.0;
   double preExp;
-
-  shift = 0;
+  int shift = 0;
   for (int k = 0; k < Ns; ++k) {
     sumMe = 0.0;
     for (int i = 0; i < Asize; ++i) {
-      preExp = preExponentArray[shift];
-      sumMe += preExp;
+      sumMe += preExponentArray[shift] =
+          weights[i] * 1.5707963267948966 * exp(aOa[k] * r2[i]);
+      ;
       ++shift;
     }
     for (int n = 0; n < Ns; ++n) {
