@@ -23,7 +23,9 @@ using namespace std;
 CellList::CellList(py::array_t<double> positions, double cutoff)
     : positions(positions.unchecked<2>()), cutoff(cutoff),
       cutoffSquared(cutoff * cutoff) {
-  this->init();
+  if (cutoff > 0) {
+    this->init();
+  }
 }
 
 void CellList::init() {

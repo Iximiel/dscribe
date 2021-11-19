@@ -35,7 +35,11 @@ class get_pybind_include(object):
 
 
 cpp_extra_link_args = []
-cpp_extra_compile_args = ["-std=c++11", "-O3"]
+cpp_extra_compile_args = [
+    "-std=c++11",  # C++11
+    "-O3",  # O3 optimizations
+    "-I dependencies/eigen/Eigen/",  # Eigen dependency
+]
 
 # Needed to specify C++ runtime library on OSX. This solution is replicated
 # from the setup.py of mdanalysis
@@ -52,7 +56,9 @@ extensions = [
         [
             "dscribe/ext/ext.cpp",
             "dscribe/ext/celllist.cpp",
+            "dscribe/ext/descriptorglobal.cpp",
             "dscribe/ext/descriptor.cpp",
+            "dscribe/ext/cm.cpp",
             "dscribe/ext/soap.cpp",
             "dscribe/ext/soapGTO.cpp",
             "dscribe/ext/soapGTO_getFactors.cpp",
@@ -63,27 +69,26 @@ extensions = [
             "dscribe/ext/weighting.cpp",
         ],
         include_dirs=[
+            # Path to Eigen headers
+            "dependencies/eigen",
             # Path to pybind11 headers
             "dscribe/ext",
             get_pybind_include(),
             get_pybind_include(user=True),
         ],
-        language="c++",
-        extra_compile_args=cpp_extra_compile_args
+        extra_link_args=cpp_extra_link_args
         + [
-            "-fvisibility=hidden",  # the -fvisibility flag is needed by pybind11
             # "-Werror",
             # "-Wall",
             # "-Wextra",
         ],
-        extra_link_args=cpp_extra_link_args,
     )
 ]
 
 if __name__ == "__main__":
     setup(
         name="dscribe",
-        version="1.1.0",
+        version="1.2.0",
         url="https://singroup.github.io/dscribe/",
         description="A Python package for creating feature transformations in applications of machine learning to materials science.",
         long_description="A Python package for creating feature transformations in applications of machine learning to materials science.",
