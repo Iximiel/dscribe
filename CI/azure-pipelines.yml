@@ -1,9 +1,8 @@
 # Defines when the pipeline is triggered
 trigger:
 - master
-- development
-- predev
-- v1.1.0
+- v1.2.0
+- cm-derivatives
 
 # Jobs
 jobs:
@@ -23,6 +22,7 @@ jobs:
   steps:
   - checkout: self
     displayName: 'Checking out git repository'
+    submodules: true
     persistCredentials: true
     clean: true
     
